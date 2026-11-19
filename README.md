@@ -89,3 +89,5 @@ node test/live.test.mjs                                      # graph, geometry a
 `test/fake_server.py` is the server with only the model scripted. The browser
 tests open the page from `file://`, because headless Chromium has no network inside
 the Claude Code sandbox, and route `/api` calls to the server through DevTools.
+
+![Liza Board](docs/screenshot.png)
