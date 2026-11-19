@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whiteboard Admin</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root { --ink: #1f2328; --muted: #6b7280; --edge: #d8dbe0; --bg: #f5f6f8; --accent: #4F46E5; --ok: #15803D; --warn: #B45309; --bad: #B91C1C; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border-bottom: 1px solid var(--edge); }
+  header h1 { margin: 0; font-size: 20px; flex: 1; }
+  header a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  section { background: #fff; border: 1px solid var(--edge); border-radius: 14px; overflow: hidden; }
+  h2 { margin: 0; padding: 12px 16px; font-size: 16px; border-bottom: 1px solid var(--edge); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 16px; text-align: left; border-bottom: 1px solid #eef0f3; vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  tr.user { cursor: pointer; }
+  tr.user:hover, tr.user.on { background: #EEF2FF; }
+  .who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .who img { width: 32px; height: 32px; border-radius: 50%; flex: none; background: #eee; }
+  .who small { display: block; color: var(--muted); overflow-wrap: anywhere; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+  .active { background: #DCFCE7; color: var(--ok); } .pending { background: #FEF3C7; color: var(--warn); } .blocked { background: #FEE2E2; color: var(--bad); }
+  button { min-height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--edge); background: #fff; font: 600 14px system-ui, sans-serif; cursor: pointer; }
+  button.go { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.stop { color: var(--bad); }
+  .muted { color: var(--muted); }
+  .empty { padding: 20px 16px; color: var(--muted); }
+  #msg { padding: 40px 16px; text-align: center; }
+  @media (max-width: 700px) {
+    .hide-sm { display: none; }
+    th, td { padding: 10px 10px; }
+  }
+</style>
+</head>
+<body>
+<header><h1>Whiteboard Admin</h1><a href="./">Back to the board</a></header>
+<main>
+  <div id="msg" hidden></div>
+  <section id="people-box" hidden>
+    <h2>People <span class="muted" id="counts"></span></h2>
+    <table>
+      <thead><tr><th>Person</th><th>Status</th><th class="hide-sm">Last seen</th><th class="hide-sm">Actions</th><th></th></tr></thead>
+      <tbody id="people"></tbody>
+    </table>
+  </section>
+  <section id="log-box" hidden>
+    <h2><span id="log-title">Recent activity, everyone</span><button id="log-all" hidden>Show everyone</button></h2>
+    <table>
+      <thead><tr><th>When</th><th id="log-who">Who</th><th>What</th><th>Details</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const api = async (url, opts = {}) => {
+  const r = await fetch(url, { credentials: "same-origin", headers: { "Content-Type": "application/json" }, ...opts });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(out.detail || "Something went wrong."), { status: r.status });
+  return out;
+};
+const when = (t) => (t ? new Date(t * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "–");
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+let picked = "";
+
+async function loadPeople() {
+  const people = await api("api/admin/users");
+  const n = (s) => people.filter((p) => p.status === s).length;
+  $("counts").textContent = `${n("active")} in · ${n("pending")} waiting · ${n("blocked")} blocked`;
+  $("people").replaceChildren(...people.map((p) => {
+    const actions = el("td");
+    const change = (status, label, cls) => {
+      const b = el("button", { className: cls, textContent: label });
+      b.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        b.disabled = true;
+        try { await api(`api/admin/users/${encodeURIComponent(p.email)}`, { method: "POST", body: JSON.stringify({ status }) }); }
+        catch (err) { alert(err.message); }
+        loadPeople();
+      });
+      return b;
+    };
+    if (p.admin) actions.append(el("span", { className: "muted", textContent: "Admin" }));
+    else if (p.status === "pending") actions.append(change("active", "Let in", "go"), " ", change("blocked", "Block", "stop"));
+    else if (p.status === "active") actions.append(change("blocked", "Block", "stop"));
+    else actions.append(change("active", "Unblock", ""));
+    const img = el("img", { src: p.picture || "icon.svg", alt: "", referrerPolicy: "no-referrer" });
+    const row = el("tr", { className: "user" + (p.email === picked ? " on" : "") },
+      el("td", {}, el("div", { className: "who" }, img, el("div", {}, p.name || p.email, el("small", { textContent: p.email })))),
+      el("td", {}, el("span", { className: `tag ${p.status}`, textContent: p.status === "active" ? "in" : p.status })),
+      el("td", { className: "hide-sm", textContent: when(p.last_seen) }),
+      el("td", { className: "hide-sm", textContent: p.actions }),
+      actions);
+    row.addEventListener("click", () => { picked = p.email; loadPeople(); loadLog(); });
+    return row;
+  }));
+  if (!people.length) $("people").replaceChildren(el("tr", {}, el("td", { colSpan: 5, className: "empty", textContent: "Nobody has signed in yet." })));
+}
+
+async function loadLog() {
+  const rows = await api("api/admin/activity" + (picked ? `?email=${encodeURIComponent(picked)}` : ""));
+  $("log-title").textContent = picked ? `Activity of ${picked}` : "Recent activity, everyone";
+  $("log-all").hidden = !picked;
+  $("log-who").hidden = !!picked;
+  $("log").replaceChildren(...rows.map((a) => el("tr", {},
+    el("td", { textContent: when(a.at) }),
+    ...(picked ? [] : [el("td", { textContent: a.email })]),
+    el("td", { textContent: a.kind }),
+    el("td", { textContent: a.detail || "" }))));
+  if (!rows.length) $("log").replaceChildren(el("tr", {}, el("td", { colSpan: 4, className: "empty", textContent: "Nothing yet." })));
+}
+$("log-all").addEventListener("click", () => { picked = ""; loadPeople(); loadLog(); });
+
+(async () => {
+  try {
+    await Promise.all([loadPeople(), loadLog()]);
+    $("people-box").hidden = $("log-box").hidden = false;
+  } catch (err) {
+    $("msg").hidden = false;
+    $("msg").append(err.status === 401 ? "Sign in on the board first, then come back here."
+      : err.status === 403 ? "This page is for admins only." : err.message, " ", el("a", { href: "./", textContent: "Go to the board" }));
+  }
+})();
+</script>
+</body>
+</html>

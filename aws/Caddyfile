@@ -1,0 +1,18 @@
+# {$SITE} is the server's https name (an sslip.io name until a domain points
+# here): a real certificate, so the microphone works on phones too.
+{$SITE} {
+	encode zstd gzip
+	reverse_proxy app:8095 {
+		# Her answers stream sentence by sentence: pass every line on at once.
+		flush_interval -1
+	}
+	header Permissions-Policy "microphone=(self)"
+	header X-Content-Type-Options nosniff
+	@big path /scene3d/* /media3d/* /lw/holo/data/* /holo/data/*
+	header @big Cache-Control "public, max-age=86400"
+}
+
+# The bare address has no certificate: send it to the https name.
+http://{$ADDRESS} {
+	redir https://{$SITE}{uri} permanent
+}

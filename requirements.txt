@@ -1,0 +1,14 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+python-multipart==0.0.20
+openai==3.31.0
+groq==1.7.0
+cartesia==4.2.0
+psycopg[binary]==3.3.6
+httpx==0.28.1
+ddgs==9.16.0
+matplotlib==3.11.1
+numpy==2.5.3
+pillow==12.3.0
+rdkit==2026.3.6
+requests==2.34.2

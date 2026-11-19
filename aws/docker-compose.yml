@@ -1,0 +1,24 @@
+# The whiteboard on one server: Caddy (HTTPS) in front of the app.
+# Keys come from .env, written by tools/deploy_aws.sh.
+services:
+  app:
+    build: .
+    restart: always
+    env_file: .env
+    volumes:
+      - ./data:/app/data   # users, sessions and the activity log; kept across deploys
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE: ${SITE}
+      ADDRESS: ${ADDRESS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+volumes:
+  caddy_data:
+  caddy_config:

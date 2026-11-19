@@ -1,0 +1,807 @@
+[
+ {
+  "name": "linear",
+  "question": "Solve what I've written on the board, step by step.",
+  "liza": {
+   "reading": {
+    "read": "2x + 3 = 7",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: 2x + 3 = 7)"
+   ],
+   "said": "Okay, let's solve this together. First, we need to get the '2x' by itself, so we'll take 3 from both sides of the equation. That leaves us with 2x equals 4. Then, to find out what 'x' is, we divide both sides by 2. So, x is 2!",
+   "actions": [
+    "show_visual:solution | Solve 2x + 3 = 7; 2x + 3 = 7 :: the equation; 2x = 7 - 3 = 4 :: take 3 from both sides; x = \\frac{4}{2} = 2 :: divide both sides by 2; answer = x = 2; see = graph: y = 2x + 3"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "2x + 3 = 7",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: 2x + 3 = 7)"
+   ],
+   "said": "Okay, let's solve this. First, we need to get the 2x by itself, so we take 3 from both sides of the equation. That leaves us with 2x = 4. Then, to find what x is, we divide both sides by 2. So, x equals 2!",
+   "actions": [
+    "steps column (4 rows), see: See the graph",
+    "buttons: See the graph"
+   ]
+  }
+ },
+ {
+  "name": "quadratic",
+  "question": "Solve this",
+  "liza": {
+   "reading": {
+    "read": "x² − 5x + 6 = 0",
+    "plot": [
+     "x² − 5x + 6 = 0"
+    ],
+    "solve": "solve x² − 5x + 6 = 0"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: x² − 5x + 6 = 0)"
+   ],
+   "said": "Okay, let's solve this quadratic equation. First, we need to factor the expression x^2 - 5x + 6. We're looking for two numbers that multiply to 6 and add up to -5, which are -2 and -3. So, we can write it as (x - 2)(x - 3) = 0. This means either x - 2 is 0 or x - 3 is 0. If x - 2 = 0, then x is 2. And if x - 3 = 0, then x is 3. So the solutions are x equals 2 and x equals 3.",
+   "actions": [
+    "show_visual:solution | Solve x^2 - 5x + 6 = 0; x^2 - 5x + 6 = 0 :: the equation; (x - 2)(x - 3) = 0 :: factor the quadratic; x - 2 = 0 \\text{ or } x - 3 = 0 :: set each factor to zero; x = 2 \\text{ or } x = 3 :: solve for x; answer = x = 2, x = 3; see = graph: y = x^2 - 5x + 6"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "x² − 5x + 6 = 0",
+    "plot": [
+     "x² − 5x + 6 = 0"
+    ],
+    "solve": "solve x² − 5x + 6 = 0"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: x² − 5x + 6 = 0)"
+   ],
+   "said": "Let's solve this quadratic equation. First, we can factor the expression x^2 - 5x + 6 into two parts. We need two numbers that multiply to 6 and add up to -5, which are -2 and -3. So, we can write it as (x - 2)(x - 3) = 0. This means either x - 2 is 0 or x - 3 is 0. If x - 2 = 0, then x is 2. If x - 3 = 0, then x is 3. So, the solutions are x equals 2 and x equals 3.",
+   "actions": [
+    "steps column (5 rows), see: See the graph",
+    "buttons: See the graph"
+   ]
+  }
+ },
+ {
+  "name": "function",
+  "question": "Look at what I've written on the board and help me with it.",
+  "liza": {
+   "reading": {
+    "read": "y = x² − 3",
+    "plot": [
+     "y = x² − 3"
+    ]
+   },
+   "measured": null,
+   "buttons": [
+    "Plot it (graph: y = x² − 3)"
+   ],
+   "said": "You've written the equation for a parabola, which is a U-shaped curve. This specific one opens upwards and crosses the y-axis at -3. Let me show you what it looks like.",
+   "actions": [
+    "show_visual:graph | y = x^2 - 3"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "y = x² - 3",
+    "plot": [
+     "y = x² - 3"
+    ]
+   },
+   "measured": null,
+   "buttons": [
+    "Plot it (graph: y = x² - 3)"
+   ],
+   "said": "This is an equation for a parabola, which is a U-shaped curve. The x^2 part makes it that shape, and the -3 means the whole curve is shifted down by three units on the graph. Here it is.",
+   "actions": [
+    "visual graph: y = x^2 - 3"
+   ]
+  }
+ },
+ {
+  "name": "two-functions",
+  "question": "Look at what I've written on the board and help me with it.",
+  "liza": {
+   "reading": {
+    "read": "y = x² − 3 ; y = A sin x + B",
+    "plot": [
+     "y = x² − 3",
+     "y = A sin x + B"
+    ]
+   },
+   "measured": null,
+   "buttons": [
+    "Plot them (graph: y = x² − 3; y = A sin x + B)"
+   ],
+   "said": "The first equation, y = x^2 - 3, will draw a U-shaped curve called a parabola. The second one, y = A sin x + B, will create a wave shape. Let me put them both on a graph for you, and you can drag the 'A' and 'B' sliders to see how they change the wave.",
+   "actions": [
+    "show_visual:graph | y = x^2 - 3; y = A sin x + B; A=1; B=0"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "y = x² − 3 ; y = A sin x + B",
+    "plot": [
+     "y = x² − 3",
+     "y = A sin x + B"
+    ]
+   },
+   "measured": null,
+   "buttons": [
+    "Plot them (graph: y = x² − 3; y = A sin x + B)"
+   ],
+   "said": "Oh, these are great! The first one, y = x^2 - 3, makes a U-shaped curve called a parabola. The second one, y = A sin x + B, creates a wave-like curve. I can put them both on a graph for you, and you'll be able to play with the 'A' and 'B' values to see how they change the wave.",
+   "actions": [
+    "visual graph: y = x^2 - 3 and y = A sin x + B, A=1, B=0"
+   ]
+  }
+ },
+ {
+  "name": "circle-equation",
+  "question": "What does this graph look like?",
+  "liza": {
+   "reading": {
+    "read": "x² + y² = 25",
+    "plot": [
+     "x² + y² = 25"
+    ],
+    "shape": "Circle; radius = 5"
+   },
+   "measured": null,
+   "buttons": [
+    "Plot it (graph: x² + y² = 25)",
+    "See the shape (shape: Circle; radius = 5)"
+   ],
+   "said": "That equation, x squared plus y squared equals twenty-five, describes a circle. It's a circle centered right at the origin, which is the point where the x and y axes cross, and it has a radius of five units. Here, let me put it up for you.",
+   "actions": [
+    "show_visual:graph | x^2 + y^2 = 25"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "x² + y² = 25",
+    "plot": [
+     "x² + y² = 25"
+    ],
+    "shape": "Circle; radius = 5"
+   },
+   "measured": null,
+   "buttons": [
+    "Plot it (graph: x² + y² = 25)",
+    "See the shape (shape: Circle; radius = 5)"
+   ],
+   "said": "That equation, x squared plus y squared equals twenty-five, describes a circle. It's a round shape where every point on the edge is the same distance from the center. In this case, the center of the circle is right at the origin, which is the point (0,0) on a graph, and its radius, which is the distance from the center to any point on the circle, is 5 units. Here, I'll show you what it looks like.",
+   "actions": [
+    "visual graph: x^2 + y^2 = 25"
+   ]
+  }
+ },
+ {
+  "name": "fractions",
+  "question": "Solve this",
+  "liza": {
+   "reading": {
+    "read": "3/4 + 1/2",
+    "solve": "solve 3/4 + 1/2"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "To add these fractions, we first need to find a common denominator. The denominators are 4 and 2, and the smallest number they both divide into is 4. So, we'll convert one-half into an equivalent fraction with a denominator of 4. That means one-half becomes two-fourths. Now we have three-fourths plus two-fourths. We add the numerators, 3 plus 2, which gives us 5. So the answer is five-fourths, or one and one-fourth.",
+   "actions": [
+    "show_visual:solution | Add fractions; \\frac{3}{4} + \\frac{1}{2} :: the sum; \\frac{3}{4} + \\frac{2}{4} :: convert \\frac{1}{2} to \\frac{2}{4} to get a common denominator; \\frac{3+2}{4} :: add the numerators; \\frac{5}{4} :: the answer; answer = \\frac{5}{4} or 1\\frac{1}{4}; see = fraction: Which is bigger; 3/4; 1/2"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "3/4 + 1/2",
+    "solve": "solve 3/4 + 1/2"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "Okay, let's add these fractions. First, we need to make sure both fractions have the same bottom number, which is called the denominator. The smallest common denominator for 4 and 2 is 4. So, we'll change one-half into an equivalent fraction with a denominator of 4. One-half is the same as two-fourths. Now we can add three-fourths and two-fourths together. That gives us five-fourths. Since the top number is bigger than the bottom number, we can write it as a mixed number: one whole and one-fourth.",
+   "actions": [
+    "steps column (6 rows)"
+   ]
+  }
+ },
+ {
+  "name": "reaction",
+  "question": "Can you balance this?",
+  "liza": {
+   "reading": {
+    "read": "H₂ + O₂ → H₂O",
+    "solve": "balance the equation",
+    "reaction": "H2 + O2 -> H2O",
+    "molecule": "H2O"
+   },
+   "measured": null,
+   "buttons": [
+    "Balance it (ask: balance)",
+    "See the reaction (reaction: H2 + O2 -> H2O)"
+   ],
+   "said": "Okay, let's balance this reaction step by step. First, we have two oxygen atoms on the left and only one on the right, so we'll put a '2' in front of the H2O. Now we have four hydrogen atoms on the right, but only two on the left, so we'll put a '2' in front of the H2. That balances it!",
+   "actions": [
+    "show_visual:solution | Balance H2 + O2 -> H2O; H2 + O2 -> H2O :: the original equation; H2 + O2 -> 2H2O :: 2 oxygen on the left, 1 on the right, so put 2 in front of H2O; 2H2 + O2 -> 2H2O :: now 4 hydrogen on the right, so put 2 in front of H2; answer = 2H2 + O2 -> 2H2O; see = reaction: 2H2 + O2 -> 2H2O"
+   ]
+  },
+  "ours": {
+   "reading": {
+    "read": "H₂ + O₂ → H₂O",
+    "solve": "balance the equation",
+    "reaction": "H2 + O2 -> H2O",
+    "molecule": "H2O"
+   },
+   "measured": null,
+   "buttons": [
+    "Balance it (ask: balance)",
+    "See the reaction (reaction: H2 + O2 -> H2O)"
+   ],
+   "said": "Of course! Let's balance this reaction. First, we have two oxygen atoms on the left and only one on the right, so we'll put a 2 in front of the water molecule. Now we have four hydrogen atoms on the right, so we need to put a 2 in front of the hydrogen molecule on the left. That balances it out!",
+   "actions": [
+    "steps column (4 rows), see: See the reaction",
+    "buttons: See the reaction"
+   ]
+  }
+ },
+ {
+  "name": "molecule",
+  "question": "What is this?",
+  "liza": {
+   "reading": {
+    "read": "CH₄",
+    "molecule": "methane"
+   },
+   "measured": null,
+   "buttons": [
+    "See it in 3D (model3d: methane)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "CH₄",
+    "molecule": "methane"
+   },
+   "measured": null,
+   "buttons": [
+    "See it in 3D (model3d: methane)"
+   ],
+   "said": "That's methane, which is a chemical compound made of one carbon atom and four hydrogen atoms. It's the simplest type of hydrocarbon, meaning it's only made of hydrogen and carbon. Methane is a gas and the main component of natural gas, which we use as fuel. It's also a greenhouse gas, which means it traps heat in the Earth's atmosphere. Tap below to see its 3D structure.",
+   "actions": [
+    "buttons: See it in 3D"
+   ]
+  }
+ },
+ {
+  "name": "cube",
+  "question": "What is its volume?",
+  "liza": {
+   "reading": {
+    "read": "4 cm",
+    "solid": "Cube; side = 4 cm"
+   },
+   "measured": null,
+   "buttons": [
+    "See it in 3D (model3d: Cube; side = 4 cm)",
+    "See the shape (shape: Cube; side = 4 cm)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a cube ; 4 cm",
+    "solid": "Cube; side = 4 cm"
+   },
+   "measured": null,
+   "buttons": [
+    "See it in 3D (model3d: Cube; side = 4 cm)",
+    "See the shape (shape: Cube; side = 4 cm)"
+   ],
+   "said": "That's a cube with a side of 4 cm. To find the volume of a cube, you multiply the side length by itself three times. So, it's 4 cm times 4 cm times 4 cm, which gives you 64 cubic centimetres. Here's how that looks:",
+   "actions": [
+    "steps column (4 rows), see: See it in 3D",
+    "buttons: See it in 3D"
+   ]
+  }
+ },
+ {
+  "name": "cylinder",
+  "question": "Find the volume",
+  "liza": {
+   "reading": {
+    "read": "a cylinder with radius r = 3 and height h = 7",
+    "solid": "Cylinder; radius = 3; height = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "See it in 3D (model3d: Cylinder; radius = 3; height = 7)",
+    "See the shape (shape: Cylinder; radius = 3; height = 7)"
+   ],
+   "said": "Okay, you've drawn a cylinder with a radius of 3 and a height of 7. To find the volume of a cylinder, you multiply the area of its circular base by its height. The area of a circle is π times the radius squared. So, you'll have π times 3 squared, multiplied by 7. That gives you 9π times 7, which is 63π. If you want to see the steps written out, just let me know!",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a cylinder with radius r = 3 and height h = 7",
+    "solve": "find the volume or surface area of the cylinder",
+    "solid": "Cylinder; radius = 3; height = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See it in 3D (model3d: Cylinder; radius = 3; height = 7)",
+    "See the shape (shape: Cylinder; radius = 3; height = 7)"
+   ],
+   "said": "To find the volume of a cylinder, we use the formula V = πr²h. First, we'll square the radius, which is 3, so 3 squared is 9. Then, we multiply that by the height, which is 7, and by pi. So, 9 times 7 is 63, giving us 63π.",
+   "actions": [
+    "steps column (5 rows), see: See the shape",
+    "buttons: See the shape"
+   ]
+  }
+ },
+ {
+  "name": "right-triangle",
+  "question": "Find the missing side",
+  "liza": {
+   "reading": {
+    "read": "a right triangle with sides 3 and 4",
+    "solve": "find the hypotenuse",
+    "shape": "Right triangle; side 1 = 3; side 2 = 4"
+   },
+   "measured": {
+    "angles": [
+     [
+      62,
+      101,
+      232,
+      98,
+      273,
+      89,
+      45
+     ],
+     [
+      90,
+      94,
+      89,
+      87
+     ]
+    ],
+    "faces": 2
+   },
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Measure it (measure: Right triangle; side 1 = 3; side 2 = 4)",
+    "Explore it (explore: Right triangle; side 1 = 3; side 2 = 4)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a right triangle with sides 3 and 4",
+    "solve": "find the hypotenuse",
+    "shape": "Right triangle; side 1 = 3; side 2 = 4"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See the shape (shape: Right triangle; side 1 = 3; side 2 = 4)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "triangle",
+  "question": "What did I draw?",
+  "liza": {
+   "reading": {
+    "read": "a triangle",
+    "shape": "Triangle"
+   },
+   "measured": {
+    "angles": [
+     [
+      71,
+      55,
+      54
+     ]
+    ],
+    "faces": 1
+   },
+   "buttons": [
+    "Measure it (measure: Triangle)",
+    "Explore it (explore: Triangle)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a triangle",
+    "shape": "Triangle"
+   },
+   "measured": {
+    "angles": [
+     [
+      71,
+      55,
+      54
+     ]
+    ],
+    "faces": 1
+   },
+   "buttons": [
+    "Measure it (measure: Triangle)",
+    "Explore it (explore: Triangle)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "two-triangles",
+  "question": "What did I draw?",
+  "liza": {
+   "reading": {
+    "read": "A triangle divided into two smaller triangles by a line from the apex to the base",
+    "shape": "Two triangles sharing a side"
+   },
+   "measured": {
+    "angles": [
+     [
+      40,
+      50,
+      90
+     ],
+     [
+      40,
+      90,
+      50
+     ]
+    ],
+    "faces": 2
+   },
+   "buttons": [
+    "Measure it (measure: Two triangles sharing a side)",
+    "Explore it (explore: Two triangles sharing a side)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "A triangle divided into two smaller triangles by a line from the top vertex to the base",
+    "shape": "Triangle"
+   },
+   "measured": {
+    "angles": [
+     [
+      40,
+      50,
+      90
+     ],
+     [
+      40,
+      90,
+      50
+     ]
+    ],
+    "faces": 2
+   },
+   "buttons": [
+    "Measure it (measure: Triangle)",
+    "Explore it (explore: Triangle)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "forces",
+  "question": "What's the net force?",
+  "liza": {
+   "reading": {
+    "read": "a block with two opposing forces: 4N to the left and 10N to the right",
+    "solve": "find the net force",
+    "shape": "Square"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See the shape (shape: Square)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a block with two arrows: 4N to the left and 10N to the right",
+    "solve": "find the net force",
+    "shape": "Square"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See the shape (shape: Square)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "check-working",
+  "question": "Is my answer right?",
+  "liza": {
+   "reading": {
+    "read": "2x + 3 = 7 ; 2x = 10 ; x = 5",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: 2x + 3 = 7)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "2x + 3 = 7 ; 2x = 10 ; x = 5",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "Plot it (graph: 2x + 3 = 7)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "house",
+  "question": "What did I draw?",
+  "liza": {
+   "reading": {
+    "read": "a house",
+    "shape": "House: a square with a triangle on top"
+   },
+   "measured": {
+    "angles": [
+     [
+      80,
+      50,
+      50
+     ],
+     [
+      90,
+      90,
+      90,
+      90
+     ]
+    ],
+    "faces": 2
+   },
+   "buttons": [
+    "Measure it (measure: House: a square with a triangle on top)",
+    "Explore it (explore: House: a square with a triangle on top)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a house",
+    "shape": "House: a square with a triangle on top"
+   },
+   "measured": {
+    "angles": [
+     [
+      80,
+      50,
+      50
+     ],
+     [
+      90,
+      90,
+      90,
+      90
+     ]
+    ],
+    "faces": 2
+   },
+   "buttons": [
+    "Measure it (measure: House: a square with a triangle on top)",
+    "Explore it (explore: House: a square with a triangle on top)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "circle-area",
+  "question": "Find the area",
+  "liza": {
+   "reading": {
+    "read": "r = 7",
+    "solve": "find the area or circumference of the circle",
+    "shape": "Circle; radius = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See the shape (shape: Circle; radius = 7)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a circle with radius r = 7",
+    "solve": "find the area or circumference of the circle",
+    "shape": "Circle; radius = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)",
+    "See the shape (shape: Circle; radius = 7)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "pendulum",
+  "question": "What did I draw?",
+  "liza": {
+   "reading": {
+    "read": "a pendulum with a bob and its path",
+    "shape": "Circle",
+    "simulation": "pendulum"
+   },
+   "measured": null,
+   "buttons": [
+    "See the shape (shape: Circle)",
+    "Run the simulation (model3d: pendulum)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "a pendulum bob at the end of its swing",
+    "simulation": "pendulum"
+   },
+   "measured": null,
+   "buttons": [
+    "Run the simulation (model3d: pendulum)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "trig",
+  "question": "What is the value?",
+  "liza": {
+   "reading": {
+    "read": "sin 30°",
+    "solve": "find sin 30°"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "sin 30°",
+    "solve": "find sin 30°"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ },
+ {
+  "name": "hindi-solve",
+  "question": "इसे हल करो",
+  "liza": {
+   "reading": {
+    "read": "2x + 3 = 7",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "हल करो (ask: solve)",
+    "ग्राफ़ बनाओ (graph: 2x + 3 = 7)"
+   ],
+   "said": "अभी सर्वर तक नहीं पहुँच पाई। एक पल बाद फिर से पूछो।",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "2x + 3 = 7",
+    "plot": [
+     "2x + 3 = 7"
+    ],
+    "solve": "solve 2x + 3 = 7"
+   },
+   "measured": null,
+   "buttons": [
+    "हल करो (ask: solve)",
+    "ग्राफ़ बनाओ (graph: 2x + 3 = 7)"
+   ],
+   "said": "अभी सर्वर तक नहीं पहुँच पाई। एक पल बाद फिर से पूछो।",
+   "actions": []
+  }
+ },
+ {
+  "name": "integral",
+  "question": "Solve this",
+  "liza": {
+   "reading": {
+    "read": "∫ x² dx",
+    "solve": "integrate x²"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  },
+  "ours": {
+   "reading": {
+    "read": "∫ x² dx",
+    "solve": "integrate x²"
+   },
+   "measured": null,
+   "buttons": [
+    "Solve it (ask: solve)"
+   ],
+   "said": "I couldn't reach my servers just then. Ask me again in a moment.",
+   "actions": []
+  }
+ }
+]

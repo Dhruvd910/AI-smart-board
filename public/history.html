@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My History</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root { --ink: #1f2328; --muted: #6b7280; --edge: #d8dbe0; --bg: #f5f6f8; --accent: #4F46E5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--edge); }
+  header img { width: 44px; height: 44px; border-radius: 50%; background: #E0E7FF; object-fit: cover; }
+  .me { flex: 1; min-width: 0; }
+  .me h1 { margin: 0; font-size: 19px; }
+  .me small { color: var(--muted); overflow-wrap: anywhere; }
+  header a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tabs button { min-height: 40px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--edge); background: #fff; font: 600 14px system-ui, sans-serif; cursor: pointer; color: var(--ink); }
+  .tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #list { background: #fff; border: 1px solid var(--edge); border-radius: 14px; overflow: hidden; }
+  .item { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #eef0f3; }
+  .item:last-child { border-bottom: 0; }
+  .item b { overflow-wrap: anywhere; }
+  .item small { color: var(--muted); white-space: nowrap; }
+  .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <img id="pic" alt="" referrerpolicy="no-referrer" src="icon.svg">
+  <div class="me"><h1 id="name">My history</h1><small id="email"></small></div>
+  <a href="./">Back to the board</a>
+</header>
+<main>
+  <div class="tabs">
+    <button class="on" data-kind="wrote">What I wrote</button>
+    <button data-kind="asked">Questions</button>
+    <button data-kind="opened">Graphs &amp; 3D</button>
+  </div>
+  <div id="list"></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+const when = (t) => new Date(t * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+let rows = [], kind = "wrote";
+
+function draw() {
+  const shown = rows.filter((r) => r.kind === kind);
+  $("list").replaceChildren(...shown.map((r) =>
+    el("div", { className: "item" }, el("b", { textContent: r.detail || "–" }), el("small", { textContent: when(r.at) }))));
+  if (!shown.length) $("list").replaceChildren(el("div", { className: "empty", textContent: "Nothing here yet. It fills in as you use the board." }));
+}
+
+for (const b of document.querySelectorAll(".tabs button")) {
+  b.addEventListener("click", () => {
+    kind = b.dataset.kind;
+    document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b));
+    draw();
+  });
+}
+
+(async () => {
+  const me = await fetch("api/auth/me", { credentials: "same-origin" }).then((r) => r.json()).catch(() => ({}));
+  if (!me.signed_in) { location.href = "./"; return; }
+  $("name").textContent = me.name || "My history";
+  $("email").textContent = me.email;
+  if (me.picture) $("pic").src = me.picture;
+  const r = await fetch("api/me/history", { credentials: "same-origin" });
+  rows = r.ok ? await r.json() : [];
+  draw();
+})();
+</script>
+</body>
+</html>

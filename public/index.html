@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Liza Board</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="lw/css/app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="base"></canvas>
+<canvas id="live"></canvas>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-logo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#60A5FA"/></linearGradient>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z M14 7l3 3"/></symbol>
+    <symbol id="i-hl" viewBox="0 0 24 24"><path d="M6 15l7-11 5 3-7 11z M6 15l-2 5h5l2-2"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M8 20h12 M4 15l9-10 7 7-8 8H9z M9 10l6 6"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19L19 5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 19L19 5 M10 5h9v9"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6V4h14v2 M12 4v16 M9 20h6"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V6a1.5 1.5 0 013 0v6 M11 11V4.5a1.5 1.5 0 013 0V11 M14 11V6a1.5 1.5 0 013 0v8a6 6 0 01-6 6h-1a6 6 0 01-5-3l-2-4a1.5 1.5 0 012.6-1.5L8 14"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5 M4 9h10a6 6 0 010 12h-3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5 M20 9H10a6 6 0 000 12h3"/></symbol>
+    <symbol id="i-clear" viewBox="0 0 24 24"><path d="M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13 M10 11v6 M14 11v6"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 12h16 M12 4v16"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M12 15V4 M7 9l5-5 5 5 M5 20h14"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0 M12 18v3"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-full" viewBox="0 0 24 24"><path d="M4 9V4h5 M20 9V4h-5 M4 15v5h5 M20 15v5h-5"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M6 3l12 9-5.5 1.2L15 19l-2.5 1.2-2.6-5.8L6 18z"/></symbol>
+    <symbol id="i-sticky" viewBox="0 0 24 24"><path d="M5 4h14v10l-6 6H5z M13 20v-6h6"/></symbol>
+    <symbol id="i-shapes" viewBox="0 0 24 24"><rect x="3" y="3" width="10" height="10" rx="1.5"/><circle cx="15.5" cy="15.5" r="5.5"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14 M12 5v14"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1 M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 01-.6-9A6 6 0 0118 9.5a4.3 4.3 0 01-.5 8.5z M9.5 13.5l2 2 3.5-3.5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z M11.5 13.5L20 4"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8 M12 17v4 M7 9h6 M7 12h9"/></symbol>
+    <symbol id="i-mindmap" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="20" r="2"/><path d="M10.2 10.2L6.4 6.4 M13.8 10.2l3.8-3.8 M12 14.5V18"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.5-1.5-6-1.5-9 .5-3-2-6.5-2-9-.5z M12 6v13.5"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><rect x="8" y="2.5" width="8" height="5" rx="1"/><rect x="2.5" y="16.5" width="8" height="5" rx="1"/><rect x="13.5" y="16.5" width="8" height="5" rx="1"/><path d="M12 7.5V12 M6.5 16.5V12h11v4.5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/></symbol>
+    <symbol id="i-boards" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  </defs>
+</svg>
+
+<!-- Top bar: the board's name and whether it is saved, undo, share, the person -->
+<header id="topbar">
+  <a class="brand" href="./" aria-label="Liza Board">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 23 L17 6 Q19 3 21.5 5 L23 6.5 Q25 9 22.5 11 L11 26 Q8 29 6 27 Q4 25 6 23z" fill="url(#g-logo)"/><path d="M15 25 L24 13 Q26 11 28 13 Q29.5 15 27.5 17 L20 27 Q18 29 16 27.5 Q14 26.5 15 25z" fill="#60A5FA" opacity="0.85"/></svg>
+    <b>Liza Board</b>
+  </a>
+  <span class="divider"></span>
+  <label class="title-box" title="Rename the board">
+    <svg><use href="#i-board"/></svg>
+    <input id="title" value="Untitled board" maxlength="120" aria-label="Board name" spellcheck="false">
+    <svg class="edit"><use href="#i-pen"/></svg>
+  </label>
+  <span id="savestate" class="saved"><svg><use href="#i-cloud"/></svg><span id="savetext">Saved on this device</span></span>
+  <span class="grow"></span>
+  <div class="tb pair">
+    <button id="undo-top" title="Undo (Ctrl+Z)" aria-label="Undo"><svg><use href="#i-undo"/></svg></button>
+    <button id="redo-top" title="Redo (Ctrl+Y)" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
+  </div>
+  <span class="divider"></span>
+  <button id="share" title="Share a copy of this board"><svg><use href="#i-link"/></svg><span>Share</span></button>
+  <span class="divider hide-sm"></span>
+  <!-- The signed-in person (auth.js): their photo, history, admin, sign out -->
+  <div id="profile" hidden>
+    <button id="profile-btn" aria-haspopup="true" aria-expanded="false" title="Your account"><img id="profile-pic" alt=""><span id="profile-name"></span><svg class="chev"><use href="#i-down"/></svg></button>
+    <div id="profile-menu" hidden>
+      <div class="pm-who"><b id="pm-name"></b><small id="pm-email"></small></div>
+      <a href="history.html">My history</a>
+      <a href="admin.html" id="pm-admin" hidden>Admin</a>
+      <button id="signout">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<!-- Left: every tool, with its name -->
+<nav id="rail" class="tb" aria-label="Tools">
+  <button data-tool="select" title="Select and move (V)"><svg><use href="#i-select"/></svg><span>Select</span></button>
+  <button data-tool="hand" title="Move the board (space)"><svg><use href="#i-hand"/></svg><span>Pan</span></button>
+  <button data-tool="pen" class="on" title="Pen (P)"><svg><use href="#i-pen"/></svg><span>Pen</span></button>
+  <button data-tool="hl" title="Highlighter (H)"><svg><use href="#i-hl"/></svg><span>Marker</span></button>
+  <button data-tool="eraser" title="Eraser (E)"><svg><use href="#i-eraser"/></svg><span>Eraser</span></button>
+  <button data-tool="sticky" title="Sticky note (S)"><svg><use href="#i-sticky"/></svg><span>Sticky</span></button>
+  <button data-tool="text" title="Text (T)"><svg><use href="#i-text"/></svg><span>Text</span></button>
+  <button id="shape" data-fly="shapes" title="Shapes"><svg><use href="#i-shapes"/></svg><span>Shapes</span></button>
+  <button data-tool="arrow" title="Connector (A)"><svg><use href="#i-arrow"/></svg><span>Connector</span></button>
+  <button id="image" title="Add a picture"><svg><use href="#i-image"/></svg><span>Image</span></button>
+</nav>
+
+<!-- Bottom: the everyday tools, colours, undo, zoom -->
+<div id="bar" class="tb" role="toolbar" aria-label="Whiteboard tools">
+  <div class="group">
+    <button data-tool="pen" class="on" title="Pen (P)" aria-label="Pen"><svg><use href="#i-pen"/></svg></button>
+    <button data-tool="rect" title="Rectangle (R)" aria-label="Rectangle"><svg><use href="#i-rect"/></svg></button>
+    <button data-tool="ellipse" title="Circle (O)" aria-label="Circle"><svg><use href="#i-ellipse"/></svg></button>
+    <button data-tool="text" title="Text (T)" aria-label="Text"><svg><use href="#i-text"/></svg></button>
+    <button data-tool="arrow" title="Arrow (A)" aria-label="Arrow"><svg><use href="#i-arrow"/></svg></button>
+    <button data-tool="hand" title="Move the board (space)" aria-label="Move the board"><svg><use href="#i-hand"/></svg></button>
+  </div>
+  <div class="group" id="palette">
+    <button data-color="#1a1a1a" class="swatch on" aria-label="Black" style="--c:#1a1a1a"></button>
+    <button data-color="#7c3aed" class="swatch" aria-label="Purple" style="--c:#7c3aed"></button>
+    <button data-color="#3b82f6" class="swatch" aria-label="Blue" style="--c:#3b82f6"></button>
+    <button data-color="#f472b6" class="swatch" aria-label="Pink" style="--c:#f472b6"></button>
+    <button data-color="#facc15" class="swatch" aria-label="Yellow" style="--c:#facc15"></button>
+    <button data-color="#22c55e" class="swatch" aria-label="Green" style="--c:#22c55e"></button>
+    <button id="colour" data-fly="colours" title="More colours and thickness" aria-label="More colours and thickness" style="--c:#1a1a1a"><svg><use href="#i-down"/></svg></button>
+  </div>
+  <div class="group">
+    <button id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg><use href="#i-undo"/></svg></button>
+    <button id="redo" title="Redo (Ctrl+Y)" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
+    <button id="clear" title="Clear this page" aria-label="Clear this page"><svg><use href="#i-clear"/></svg></button>
+  </div>
+  <div class="group zoomer">
+    <button id="zoom-out" title="Zoom out (−)" aria-label="Zoom out"><svg><use href="#i-minus"/></svg></button>
+    <button id="zoom" title="Show everything (0)" aria-label="Zoom: show everything">100%</button>
+    <button id="zoom-in" title="Zoom in (+)" aria-label="Zoom in"><svg><use href="#i-plus"/></svg></button>
+  </div>
+  <div class="group">
+    <button data-fly="more" title="More" aria-label="More"><svg><use href="#i-more"/></svg></button>
+  </div>
+</div>
+
+<div class="fly tb" id="shapes" hidden>
+  <button data-tool="line" title="Line (L)" aria-label="Line"><svg><use href="#i-line"/></svg></button>
+  <button data-tool="arrow" title="Arrow (A)" aria-label="Arrow"><svg><use href="#i-arrow"/></svg></button>
+  <button data-tool="rect" title="Rectangle (R)" aria-label="Rectangle"><svg><use href="#i-rect"/></svg></button>
+  <button data-tool="ellipse" title="Circle (O)" aria-label="Circle"><svg><use href="#i-ellipse"/></svg></button>
+</div>
+
+<div class="fly tb" id="colours" hidden>
+  <div class="row">
+    <button data-color="#d62828" class="swatch" aria-label="Red" style="--c:#d62828"></button>
+    <button data-color="#f08c00" class="swatch" aria-label="Orange" style="--c:#f08c00"></button>
+    <button data-color="#0f766e" class="swatch" aria-label="Teal" style="--c:#0f766e"></button>
+    <button data-color="#1f5fd6" class="swatch" aria-label="Dark blue" style="--c:#1f5fd6"></button>
+    <button data-color="#ffffff" class="swatch" aria-label="White" style="--c:#ffffff"></button>
+    <label class="swatch custom" title="Any colour" aria-label="Any colour"><input type="color" id="pick" value="#00a6a6"></label>
+  </div>
+  <div class="row" id="sizes">
+    <button data-size="2" aria-label="Thin"><i style="--d:4px"></i></button>
+    <button data-size="5" class="on" aria-label="Medium"><i style="--d:8px"></i></button>
+    <button data-size="12" aria-label="Thick"><i style="--d:14px"></i></button>
+  </div>
+</div>
+
+<div class="fly tb" id="more" hidden>
+  <button id="new-board" class="wide"><svg><use href="#i-plus"/></svg><span>New board</span></button>
+  <button id="my-boards" class="wide"><svg><use href="#i-boards"/></svg><span>My boards</span></button>
+  <button id="bg" class="wide"><svg><use href="#i-grid"/></svg><span>Background: <b id="bgname">dots</b></span></button>
+  <button id="png" class="wide"><svg><use href="#i-image"/></svg><span>Save as picture</span></button>
+  <button id="save" class="wide"><svg><use href="#i-save"/></svg><span>Save board file</span></button>
+  <button id="open" class="wide"><svg><use href="#i-open"/></svg><span>Open board file</span></button>
+  <label class="wide" id="cls-row"><svg><use href="#i-spark"/></svg><span>Class</span>
+    <select id="cls"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></label>
+  <button id="full" class="wide"><svg><use href="#i-full"/></svg><span>Full screen</span></button>
+</div>
+
+<!-- My boards (signed in) -->
+<div class="fly tb" id="boards" hidden>
+  <div class="fly-head">My boards</div>
+  <div id="boards-list"></div>
+</div>
+
+<!-- Bottom left: this page, and the others -->
+<div id="pages">
+  <canvas id="thumb" width="220" height="140" title="This page"></canvas>
+  <div class="pager tb">
+    <button id="thumb-toggle" title="Hide the page preview" aria-label="Hide the page preview"><svg><use href="#i-up"/></svg></button>
+    <button id="page-menu" data-fly="pagelist" title="Pages"><span id="page-label">Page 1 / 1</span><svg><use href="#i-down"/></svg></button>
+  </div>
+</div>
+<div class="fly tb" id="pagelist" hidden>
+  <div id="pagelist-items"></div>
+  <button id="page-add" class="wide"><svg><use href="#i-plus"/></svg><span>Add a page</span></button>
+  <button id="page-del" class="wide"><svg><use href="#i-clear"/></svg><span>Delete this page</span></button>
+</div>
+
+<!-- What is selected: duplicate, delete, edit a note -->
+<div id="selbar" class="tb" hidden>
+  <button id="sel-ask" class="sel-ask" title="Ask Liza about just this"><svg><use href="#i-spark"/></svg><span>Ask Liza</span></button>
+  <button id="sel-edit" title="Edit the note" hidden><svg><use href="#i-pen"/></svg></button>
+  <button id="sel-copy" title="Duplicate (Ctrl+D)"><svg><use href="#i-copy"/></svg></button>
+  <button id="sel-del" title="Delete (Del)"><svg><use href="#i-clear"/></svg></button>
+</div>
+
+<!-- What Liza reads, the buttons under the writing, the figure measured -->
+<div id="smart"><div id="chip" hidden></div></div>
+<div id="suggest" hidden></div>
+<svg id="measure" aria-hidden="true"></svg>
+
+<!-- Right: Ask Liza -->
+<aside id="panel" aria-label="Ask Liza">
+  <div class="panel-head">
+    <svg class="spark"><use href="#i-spark"/></svg>
+    <b>Ask Liza</b>
+    <span class="grow"></span>
+    <button id="panel-min" title="Minimise" aria-label="Minimise"><svg><use href="#i-minus"/></svg></button>
+    <button id="panel-max" title="Make bigger" aria-label="Make bigger"><svg><use href="#i-full"/></svg></button>
+  </div>
+  <div id="panel-body">
+    <div id="welcome">
+      <svg class="robot" viewBox="0 0 220 150" aria-hidden="true">
+        <defs>
+          <linearGradient id="g-sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#EEF2FF"/><stop offset="1" stop-color="#F5F3FF"/></linearGradient>
+          <linearGradient id="g-head" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9E5FF"/></linearGradient>
+        </defs>
+        <rect width="220" height="150" rx="16" fill="url(#g-sky)"/>
+        <path d="M0 110 Q60 80 120 105 T220 95 V150 H0z" fill="#E0E7FF" opacity="0.7"/>
+        <line x1="110" y1="22" x2="110" y2="36" stroke="#A78BFA" stroke-width="3"/><circle cx="110" cy="19" r="5" fill="#8B5CF6"/>
+        <rect x="70" y="36" width="80" height="62" rx="28" fill="url(#g-head)" stroke="#DDD6FE" stroke-width="2"/>
+        <rect x="80" y="48" width="60" height="38" rx="18" fill="#1E1B4B"/>
+        <path d="M94 66 q6 -7 12 0 M114 66 q6 -7 12 0" stroke="#7DD3FC" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <rect x="62" y="58" width="9" height="20" rx="4" fill="#C4B5FD"/><rect x="149" y="58" width="9" height="20" rx="4" fill="#C4B5FD"/>
+        <path d="M86 98 q24 18 48 0 v22 q-24 14 -48 0z" fill="url(#g-head)" stroke="#DDD6FE" stroke-width="2"/>
+        <path d="M160 30 l14 -10 M166 40 l16 -4 M157 22 l6 -12" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <h2>What would you like to create today?</h2>
+      <button class="quick" data-quick="mindmap"><svg><use href="#i-mindmap"/></svg><span>Create a mind map</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <button class="quick" data-quick="explain"><svg><use href="#i-book"/></svg><span>Explain a concept</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <button class="quick" data-quick="flowchart"><svg><use href="#i-flow"/></svg><span>Generate a flowchart</span><svg class="chev"><use href="#i-right"/></svg></button>
+    </div>
+    <div id="chat" aria-live="polite"></div>
+    <div id="offers" hidden></div>
+  </div>
+  <form id="askbar" autocomplete="off">
+    <div id="quick-chip" hidden><span></span><button type="button" aria-label="Cancel">✕</button></div>
+    <div class="askrow">
+      <button type="button" id="mic" title="Ask out loud" aria-label="Ask out loud" hidden><svg><use href="#i-mic"/></svg></button>
+      <input id="question" type="text" maxlength="600" placeholder="Ask anything…" aria-label="Your question">
+      <button type="button" id="stopTalk" title="Stop" aria-label="Stop" hidden><svg><use href="#i-stop"/></svg></button>
+      <button type="submit" id="askLiza" title="Ask Liza" aria-label="Ask Liza"><svg><use href="#i-send"/></svg></button>
+    </div>
+  </form>
+</aside>
+<button id="panel-open" hidden><svg><use href="#i-spark"/></svg><span>Ask Liza</span></button>
+
+<!-- Her worked solution and her graph, beside the writing -->
+<div class="card" id="steps" hidden>
+  <div class="card-head">
+    <div id="steps-title"></div>
+    <button id="steps-close" title="Close" aria-label="Close">✕</button>
+  </div>
+  <div id="steps-body"><ol id="steps-list"></ol></div>
+  <button id="steps-see" hidden></button>
+</div>
+<div class="card" id="graph" hidden><div id="graph-stage"></div><div id="graph-keys" hidden></div></div>
+
+<!-- Her full-screen views (a picture, a 3D model, the geometry lab), on her 800x480 stage -->
+<div id="viewport" hidden><div id="stage"></div></div>
+
+<input type="file" id="file" accept=".json,application/json" hidden>
+<input type="file" id="imagefile" accept="image/*" hidden>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- Sign in with Google (auth.js); only when the server has sign-in on -->
+<div id="signin" hidden>
+  <div class="signin-box">
+    <img src="icon.svg" alt="" width="56" height="56">
+    <h1>Liza Board</h1>
+    <p id="signin-words">Sign in with your Google account to use the board.</p>
+    <div id="gbutton"></div>
+    <button id="signin-other" hidden>Use a different account</button>
+  </div>
+</div>
+<script src="auth.js"></script>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="core.js"></script>
+<script src="app.js"></script>
+<script type="importmap">
+{ "imports": {
+  "./lw/js/account.js": "./account-stub.js",
+  "three": "./lw/holo/vendor/three/build/three.module.min.js",
+  "three/addons/": "./lw/holo/vendor/three/examples/jsm/"
+} }
+</script>
+<script type="module" src="liza.js"></script>
+</body>
+</html>

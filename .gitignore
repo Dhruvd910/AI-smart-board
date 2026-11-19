@@ -1,0 +1,6 @@
+build/
+.env
+.env.bak-*
+data/
+.venv/
+public/scene3d/
