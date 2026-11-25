@@ -1,9 +1,16 @@
 {
-  "name": "Whiteboard",
-  "short_name": "Whiteboard",
+  "name": "Liza Board",
+  "short_name": "Liza Board",
+  "description": "An AI whiteboard that reads what you write: graphs, 3D, simulations, questions and summaries.",
   "start_url": "./",
-  "display": "fullscreen",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "theme_color": "#5b3df5",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
 }

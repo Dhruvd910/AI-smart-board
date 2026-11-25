@@ -98,7 +98,14 @@ try {
 
   // background cycles, picture saves
   await tapButton("#bg");
+  await tapButton('[data-bg="grid"]');
   assert.equal(await js("opts.bg"), "grid");
+  await tapButton("#bg");
+  await tapButton('[data-paper="chalk"]');
+  assert.equal(await js("opts.paper"), "chalk");
+  assert.equal(await js("inkFor(bctx, '#1a1a1a')"), "#f4f4ef", "black ink shows light on the chalkboard");
+  await tapButton("#bg");
+  await tapButton('[data-paper="white"]');
   await tapButton("#png");
   await sleep(1500);
   assert.ok(readdirSync(downloads).some((f) => f.endsWith(".png")), "PNG downloaded: " + readdirSync(downloads));

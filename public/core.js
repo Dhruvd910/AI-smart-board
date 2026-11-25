@@ -164,6 +164,19 @@
     this.undone = [];
   };
 
+  // Some items swapped for others as one undo step (handwriting made neat text).
+  History.prototype.swap = function (list, added) {
+    var self = this;
+    var removed = list.map(function (it) { return [self.items.indexOf(it), it]; })
+      .filter(function (e) { return e[0] >= 0; })
+      .sort(function (a, b) { return a[0] - b[0]; });
+    if (!removed.length && !added.length) return;
+    var step = { swapped: true, removed: removed, add: added };
+    this._apply(step, false);
+    this.done.push(step);
+    this.undone = [];
+  };
+
   History.prototype.clear = function () {
     this.remove(this.items.slice());
   };
@@ -187,7 +200,15 @@
   History.prototype._apply = function (step, backwards) {
     var items = this.items;
     this.version++;
-    if (step.moved) {
+    if (step.swapped) {
+      if (backwards) {
+        step.add.forEach(function (it) { items.splice(items.indexOf(it), 1); });
+        step.removed.forEach(function (e) { items.splice(e[0], 0, e[1]); });
+      } else {
+        step.removed.slice().reverse().forEach(function (e) { items.splice(e[0], 1); });
+        step.add.forEach(function (it) { items.push(it); });
+      }
+    } else if (step.moved) {
       var k = backwards ? -1 : 1;
       step.moved.forEach(function (it) { shift(it, k * step.dx, k * step.dy); });
     } else if (step.replaced) {
@@ -217,6 +238,7 @@
         if (it.tool === "sticky") {
           box.text = typeof it.text === "string" ? it.text.slice(0, 5000) : "";
           box.size = isNum(it.size) && it.size > 0 ? it.size : 20;
+          if (it.align === "left") box.align = "left"; // a list (Liza's summary), not a label
         } else {
           if (typeof it.src !== "string" || !/^data:image\/(png|jpeg|webp|gif);base64,/.test(it.src) || it.src.length > 4e6) return;
           box.src = it.src;
@@ -245,7 +267,8 @@
     var pages = data && Array.isArray(data.pages) ? data.pages : [data];
     pages = pages.slice(0, 50).map(function (pg) { return sanitize(pg); });
     if (!pages.length) pages = [[]];
-    return { pages: pages, bg: data && typeof data.bg === "string" ? data.bg : null };
+    return { pages: pages, bg: data && typeof data.bg === "string" ? data.bg : null,
+      paper: data && typeof data.paper === "string" ? data.paper : null };
   }
 
   var api = { TOOLS: TOOLS, distToSeg: distToSeg, outline: outline, bounds: bounds, boundsOf: boundsOf,

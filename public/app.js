@@ -7,9 +7,18 @@ const base = document.getElementById("base"); // everything finished
 const live = document.getElementById("live"); // strokes being drawn right now
 const bctx = base.getContext("2d");
 const lctx = live.getContext("2d");
+base.onPaper = live.onPaper = true; // what drawItem draws here sits on the board colour (inkFor)
 const STORE = "whiteboard.v1";
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const BACKGROUNDS = ["dots", "grid", "lines", "plain"];
+// Board colours. On the two dark ones (a green chalkboard, night) dark ink is drawn light.
+const PAPERS = { white: "#ffffff", cream: "#fbf6e9", mint: "#eaf7ef", sky: "#ebf3ff", lilac: "#f3effe", chalk: "#23392f", night: "#17191f" };
+const darkPaper = () => opts.paper === "chalk" || opts.paper === "night";
+function inkFor(ctx, color) {
+  if (!ctx.canvas.onPaper || !darkPaper() || !/^#[0-9a-f]{6}$/i.test(color)) return color;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 70 ? "#f4f4ef" : color; // black and near-black become chalk white
+}
 // A sticky note takes a soft version of the chosen colour.
 const NOTE = { "#1a1a1a": "#fef3a0", "#7c3aed": "#e9d5ff", "#3b82f6": "#bfdbfe", "#f472b6": "#fbcfe8",
   "#facc15": "#fef3a0", "#22c55e": "#bbf7d0", "#d62828": "#fecaca", "#f08c00": "#fed7aa", "#0f766e": "#99f6e4",
@@ -17,7 +26,7 @@ const NOTE = { "#1a1a1a": "#fef3a0", "#7c3aed": "#e9d5ff", "#3b82f6": "#bfdbfe",
 
 let board = new C.History();
 const view = { s: 1, x: 0, y: 0 }; // screen = board * s + (x, y), in CSS pixels
-const opts = { tool: "pen", color: "#1a1a1a", size: 5, bg: "dots" };
+const opts = { tool: "pen", color: "#1a1a1a", size: 5, bg: "dots", paper: "white" };
 let W = 0, H = 0, dpr = 1;
 
 const pointers = new Map(); // pointerId -> {x, y, type, mode, ...}
@@ -88,14 +97,15 @@ function drawBox(ctx, it) {
   ctx.beginPath();
   ctx.rect(it.x, it.y, it.w, it.h);
   ctx.clip();
-  ctx.textAlign = "center";
-  lines.forEach((line, i) => ctx.fillText(line, it.x + it.w / 2, top + i * lineH));
+  ctx.textAlign = it.align === "left" ? "left" : "center";
+  const x = it.align === "left" ? it.x + pad : it.x + it.w / 2;
+  lines.forEach((line, i) => ctx.fillText(line, x, top + i * lineH));
   ctx.restore();
 }
 
 function drawItem(ctx, it) {
   if (C.isBox(it)) return drawBox(ctx, it);
-  ctx.strokeStyle = ctx.fillStyle = it.color;
+  ctx.strokeStyle = ctx.fillStyle = inkFor(ctx, it.color);
   ctx.lineCap = ctx.lineJoin = "round";
   ctx.globalAlpha = it.tool === "hl" ? 0.35 : 1;
   const p = it.points;
@@ -156,14 +166,15 @@ function drawBackground() {
   if (opts.bg === "plain") return;
   let step = 32 * view.s;
   while (step < 12) step *= 2; // zoomed far out: fewer, wider lines
+  const dark = darkPaper();
   if (opts.bg === "dots") {
-    bctx.fillStyle = "#cfd3dc";
+    bctx.fillStyle = dark ? "rgba(255,255,255,0.22)" : "#cfd3dc";
     for (let y = ((view.y % step) + step) % step; y < H; y += step) {
       for (let x = ((view.x % step) + step) % step; x < W; x += step) bctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
     }
     return;
   }
-  bctx.strokeStyle = "#e6eaf0";
+  bctx.strokeStyle = dark ? "rgba(255,255,255,0.12)" : "rgba(60,70,90,0.12)";
   bctx.lineWidth = 1;
   bctx.beginPath();
   for (let y = ((view.y % step) + step) % step; y < H; y += step) {
@@ -181,7 +192,7 @@ function drawBackground() {
 
 function redrawBase() {
   bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  bctx.fillStyle = "#ffffff";
+  bctx.fillStyle = PAPERS[opts.paper] || "#ffffff";
   bctx.fillRect(0, 0, W, H);
   drawBackground();
   bctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.x, dpr * view.y);
@@ -564,10 +575,13 @@ function placeSelbar() {
   bar.hidden = !show;
   if (!show) return;
   $("sel-edit").hidden = !(chosen.length === 1 && chosen[0].tool === "sticky");
+  $("sel-neat").hidden = !chosen.some((it) => it.tool === "pen"); // only handwriting can be made neat
   const b = C.boundsOf(chosen);
   const x = ((b.x0 + b.x1) / 2) * view.s + view.x, y = b.y0 * view.s + view.y - 58;
   bar.style.left = Math.max(8, Math.min(W - bar.offsetWidth - 8, x - bar.offsetWidth / 2)) + "px";
-  bar.style.top = Math.max(70, y) + "px";
+  // Above the selection, unless Liza's dock is there: then below it.
+  const dock = $("suggest").hidden ? 0 : $("suggest").getBoundingClientRect().bottom + 8;
+  bar.style.top = (y < Math.max(70, dock) ? b.y1 * view.s + view.y + 16 : y) + "px";
 }
 
 function deleteSelected() {
@@ -694,13 +708,16 @@ function setTool(tool) {
 let openFly = null;
 function toggleFly(id, button) {
   const was = openFly;
+  const b = (button || $("bar")).getBoundingClientRect(); // before closing: the button may be in the fly that closes
   closeFly();
   if (was === id) return;
   const fly = $(id);
   fly.hidden = false;
-  const b = (button || $("bar")).getBoundingClientRect();
   Object.assign(fly.style, { left: "", right: "", top: "", bottom: "", transform: "" });
-  if (button && button.closest("#rail")) {
+  if (button && button.closest("#topbar")) {
+    fly.style.top = b.bottom + 8 + "px";
+    fly.style.left = Math.max(8, Math.min(innerWidth - fly.offsetWidth - 8, b.right - fly.offsetWidth)) + "px";
+  } else if (button && button.closest("#rail")) {
     fly.style.left = b.right + 10 + "px";
     fly.style.top = Math.min(b.top, innerHeight - fly.offsetHeight - 10) + "px";
   } else {
@@ -786,6 +803,7 @@ $("sel-del").addEventListener("click", deleteSelected);
 $("sel-copy").addEventListener("click", duplicateSelected);
 $("sel-edit").addEventListener("click", () => sel.length === 1 && editNote(sel[0]));
 $("sel-ask").addEventListener("click", () => window.Liza && Liza.askAbout());
+$("sel-neat").addEventListener("click", () => window.Liza && Liza.neaten());
 $("clear").addEventListener("click", () => {
   if (!board.items.length) return;
   select(null);
@@ -794,14 +812,29 @@ $("clear").addEventListener("click", () => {
   save();
   toast("Board cleared. Undo brings it back.");
 });
-$("bg").addEventListener("click", () => {
-  opts.bg = BACKGROUNDS[(BACKGROUNDS.indexOf(opts.bg) + 1) % BACKGROUNDS.length];
-  $("bgname").textContent = opts.bg;
+// Board style: the pattern (dots, lines, boxes, plain) and the board's colour.
+function showStyle() {
+  document.querySelectorAll("[data-bg]").forEach((b) => b.classList.toggle("on", b.dataset.bg === opts.bg));
+  document.querySelectorAll("[data-paper]").forEach((b) => b.classList.toggle("on", b.dataset.paper === opts.paper));
+  document.body.classList.toggle("dark-paper", darkPaper());
+}
+document.querySelectorAll("[data-bg]").forEach((b) => b.addEventListener("click", () => {
+  opts.bg = b.dataset.bg;
+  showStyle();
   paint(BASE);
   save();
-});
+}));
+document.querySelectorAll("[data-paper]").forEach((b) => b.addEventListener("click", () => {
+  opts.paper = b.dataset.paper;
+  showStyle();
+  paint(BASE | LIVE);
+  save();
+}));
 $("zoom").addEventListener("click", fit);
 $("png").addEventListener("click", exportPng);
+$("pdf").addEventListener("click", exportPdf);
+$("record").addEventListener("click", toggleRecording);
+$("rec").addEventListener("click", toggleRecording);
 $("save").addEventListener("click", () => {
   const data = JSON.stringify({ app: "whiteboard", version: 2, title: $("title").value, ...boardData() });
   download(new Blob([data], { type: "application/json" }), fileName() + ".json");
@@ -880,21 +913,92 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
-function exportPng() {
-  const b = C.boundsOf(board.items);
-  if (!b) return toast("Nothing on the board to save yet");
+// A page's items as a canvas on the board colour; null for an empty page.
+function pageCanvas(items, maxPixels = 16e6) {
+  const b = C.boundsOf(items);
+  if (!b) return null;
   const m = 24, w = b.x1 - b.x0 + 2 * m, h = b.y1 - b.y0 + 2 * m;
   // Sharp, but under the ~16 megapixel canvas limit of phone browsers.
-  const k = Math.min(2, Math.sqrt(16e6 / (w * h)));
+  const k = Math.min(2, Math.sqrt(maxPixels / (w * h)));
   const c = document.createElement("canvas");
   c.width = Math.ceil(w * k);
   c.height = Math.ceil(h * k);
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "#ffffff";
+  c.onPaper = true;
+  ctx.fillStyle = PAPERS[opts.paper] || "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
   ctx.setTransform(k, 0, 0, k, (m - b.x0) * k, (m - b.y0) * k);
-  board.items.forEach((it) => drawItem(ctx, it));
+  items.forEach((it) => drawItem(ctx, it));
+  return c;
+}
+
+function exportPng() {
+  const c = pageCanvas(board.items);
+  if (!c) return toast("Nothing on the board to save yet");
   c.toBlob((blob) => download(blob, fileName() + ".png"), "image/png");
+}
+
+// A print window: the browser's own "Save as PDF" makes the file, on every device.
+function printDoc(title, body) {
+  const w = window.open("", "_blank");
+  if (!w) return toast("Allow pop-ups for this site to save a PDF");
+  const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+    body { font: 15px/1.5 system-ui, sans-serif; color: #111; margin: 24px; }
+    h1 { font-size: 22px; margin: 0 0 4px; } .meta { color: #555; margin-bottom: 18px; }
+    .blanks { display: flex; gap: 28px; margin: 10px 0 18px; } .blanks span { flex: 1; border-bottom: 1px solid #999; padding-bottom: 2px; }
+    ol li { margin: 0 0 16px; } .marks { float: right; color: #555; } .lvl { color: #666; font-size: 12px; text-transform: uppercase; }
+    .page { page-break-after: always; text-align: center; } .page img { max-width: 100%; max-height: 92vh; }
+    .break { page-break-before: always; } @media print { .noprint { display: none; } }
+  </style></head><body>${body}<script>onload = () => setTimeout(() => print(), 300);<\/script></body></html>`);
+  w.document.close();
+  return w;
+}
+
+// Every page of the board, one per sheet.
+function exportPdf() {
+  const imgs = pages.map((h) => pageCanvas(h.items, 6e6)).filter(Boolean)
+    .map((c) => `<div class="page"><img src="${c.toDataURL("image/jpeg", 0.9)}"></div>`);
+  if (!imgs.length) return toast("Nothing on the board to save yet");
+  printDoc($("title").value || "Whiteboard", imgs.join(""));
+}
+
+// ------------------------------------------------------------------ recording a lesson
+// The board (what is drawn, as it is drawn) and the microphone, as a video file.
+let recorder = null, recTimer = 0;
+async function toggleRecording() {
+  if (recorder) return recorder.stop();
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return toast("This browser can't record. Try Chrome or Edge.");
+  let mic = null;
+  try { mic = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) { toast("Recording without sound: the microphone is off"); }
+  const frame = document.createElement("canvas");
+  frame.width = base.width;
+  frame.height = base.height;
+  const fctx = frame.getContext("2d");
+  const copy = () => { if (!recorder) return; fctx.drawImage(base, 0, 0); fctx.drawImage(live, 0, 0); requestAnimationFrame(copy); };
+  const stream = frame.captureStream(30);
+  if (mic) mic.getAudioTracks().forEach((t) => stream.addTrack(t));
+  const type = ["video/webm;codecs=vp9,opus", "video/webm", "video/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  const chunks = [];
+  recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => {
+    recorder = null;
+    clearInterval(recTimer);
+    if (mic) mic.getTracks().forEach((t) => t.stop());
+    $("rec").hidden = true;
+    const blob = new Blob(chunks, { type: chunks[0] ? chunks[0].type : "video/webm" });
+    download(blob, fileName() + (blob.type.includes("mp4") ? ".mp4" : ".webm"));
+    toast("Lesson saved as a video");
+  };
+  recorder.start(1000);
+  copy();
+  const started = Date.now();
+  $("rec").hidden = false;
+  const tick = () => { const t = Math.floor((Date.now() - started) / 1000); $("rec-time").textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+  tick();
+  recTimer = setInterval(tick, 1000);
+  closeFly();
 }
 
 // ------------------------------------------------------------------ pages
@@ -946,8 +1050,9 @@ $("thumb").addEventListener("click", fit);
 // The page in miniature, bottom left.
 function drawThumb() {
   const c = $("thumb"), ctx = c.getContext("2d");
+  c.onPaper = true;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = "#fff";
+  ctx.fillStyle = PAPERS[opts.paper] || "#fff";
   ctx.fillRect(0, 0, c.width, c.height);
   const b = C.boundsOf(board.items);
   if (!b) return;
@@ -957,13 +1062,14 @@ function drawThumb() {
   board.items.forEach((it) => drawItem(ctx, it));
 }
 
-const boardData = () => ({ pages: pages.map((h) => ({ items: h.items })), bg: opts.bg });
+const boardData = () => ({ pages: pages.map((h) => ({ items: h.items })), bg: opts.bg, paper: opts.paper });
 
 function loadBoard(data) {
   const loaded = C.sanitizeBoard(data);
   pages = loaded.pages.map((items) => new C.History(items));
   if (BACKGROUNDS.includes(loaded.bg)) opts.bg = loaded.bg;
-  $("bgname").textContent = opts.bg;
+  opts.paper = PAPERS[loaded.paper] ? loaded.paper : "white";
+  showStyle();
   showPage(Number.isInteger(data && data.page) ? data.page : 0, true);
 }
 
@@ -1079,28 +1185,41 @@ $("title").addEventListener("input", () => save());
 $("title").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
 $("title").addEventListener("blur", () => { if (!$("title").value.trim()) { $("title").value = "Untitled board"; save(); } });
 
+// Share: a link that gives whoever opens it their own copy, straight into the apps classes use.
+let shareLink = "";
 $("share").addEventListener("click", async () => {
   if (!cloud.on || !cloud.id) return toast("Sign in to share your boards.");
+  if (openFly === "sharefly") return closeFly();
   try {
     await push();
     const { token } = await api("POST", `api/boards/${cloud.id}/share`);
-    const link = location.origin + location.pathname + "?share=" + token;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast("Link copied. Whoever opens it gets their own copy of this board.");
-    } catch (_) {
-      prompt("Copy this link. Whoever opens it gets their own copy of this board:", link);
-    }
+    shareLink = location.origin + location.pathname + "?share=" + token;
+    const title = $("title").value || "Whiteboard";
+    const u = encodeURIComponent(shareLink), t = encodeURIComponent(title);
+    $("share-gc").href = `https://classroom.google.com/share?url=${u}&title=${t}`;
+    $("share-teams").href = `https://teams.microsoft.com/share?href=${u}&msgText=${t}`;
+    $("share-wa").href = `https://wa.me/?text=${encodeURIComponent(title + " " + shareLink)}`;
+    toggleFly("sharefly", $("share"));
   } catch (err) {
     toast(err.message);
   }
 });
+$("share-copy").addEventListener("click", async () => {
+  closeFly();
+  try {
+    await navigator.clipboard.writeText(shareLink);
+    toast("Link copied. Whoever opens it gets their own copy of this board.");
+  } catch (_) {
+    prompt("Copy this link. Whoever opens it gets their own copy of this board:", shareLink);
+  }
+});
+document.querySelectorAll(".share-app").forEach((a) => a.addEventListener("click", () => closeFly()));
 
 $("new-board").addEventListener("click", async () => {
   closeFly();
   if (!cloud.on) {
     if (pages.some((h) => h.items.length) && !confirm("Start a new board? This one will be cleared (save it as a file first if you need it).")) return;
-    loadBoard({ pages: [{ items: [] }], bg: opts.bg });
+    loadBoard({ pages: [{ items: [] }], bg: opts.bg, paper: opts.paper });
     $("title").value = "Untitled board";
     return fit();
   }
@@ -1214,7 +1333,47 @@ function addDiagram(d) {
   save();
 }
 
-window.Board = { addDiagram, get key() { return boardKey; }, get selection() { return picked(); } };
+// Liza's Neaten: handwriting swapped for typed text where it was written, one undo step.
+function neaten(strokes, lines) {
+  const b = C.boundsOf(strokes);
+  if (!b || !lines.length) return;
+  const counts = {};
+  strokes.forEach((it) => { counts[it.color] = (counts[it.color] || 0) + 1; });
+  const color = Object.keys(counts).sort((p, q) => counts[q] - counts[p])[0];
+  let size = Math.min(80 / view.s, Math.max(14 / view.s, ((b.y1 - b.y0) / lines.length) * 0.6));
+  bctx.font = "100px " + FONT; // widths at 100 px, scaled: as wide as the writing was, give or take
+  const widest = Math.max(...lines.map((l) => bctx.measureText(l).width)) / 100;
+  if (widest * size > (b.x1 - b.x0) * 1.2) size = Math.max(14 / view.s, ((b.x1 - b.x0) * 1.2) / widest);
+  const text = { tool: "text", color, x: r2(b.x0), y: r2(b.y0), text: lines.join("\n"), size: r2(size) };
+  const wasPicked = sel.length > 0;
+  board.swap(strokes, [text]);
+  select(wasPicked ? text : null);
+  paint(BASE | LIVE);
+  save();
+}
+
+// A sticky note of Liza's (a summary, questions) in the middle of what is in view.
+function addNote(textValue) {
+  const a = clearArea();
+  const w = 440 / view.s, size = 17 / view.s, pad = Math.max(8, size * 0.6);
+  bctx.font = "500 " + size + "px " + FONT;
+  const h = wrap(bctx, textValue, w - 2 * pad).length * size * 1.25 + 2 * pad; // tall enough for every line
+  const [cx, cy] = toBoard((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2);
+  const note = { tool: "sticky", color: NOTE[opts.color] || "#fef3a0", x: r2(cx - w / 2), y: r2(cy - h / 2), w: r2(w), h: r2(h), text: textValue, size: r2(size), align: "left" };
+  board.add(note);
+  setTool("select");
+  select(note);
+  paint(BASE);
+  save();
+}
+
+// This page, small, for the teacher's view of the class (classroom.js); null when empty.
+function snapshot() {
+  const c = pageCanvas(board.items, 3.5e5);
+  return c ? c.toDataURL("image/jpeg", 0.72) : null;
+}
+
+window.Board = { addDiagram, neaten, addNote, printDoc, snapshot, get key() { return boardKey; }, get selection() { return picked(); } };
 
 let toastTimer = 0;
 function toast(msg) {
@@ -1226,7 +1385,7 @@ function toast(msg) {
 }
 
 restore();
-$("bgname").textContent = opts.bg;
+showStyle();
 updatePager();
 resize();
 drawThumb();

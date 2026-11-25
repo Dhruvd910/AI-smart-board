@@ -44,7 +44,7 @@
   <section id="people-box" hidden>
     <h2>People <span class="muted" id="counts"></span></h2>
     <table>
-      <thead><tr><th>Person</th><th>Status</th><th class="hide-sm">Last seen</th><th class="hide-sm">Actions</th><th></th></tr></thead>
+      <thead><tr><th>Person</th><th>Status</th><th class="hide-sm">Last seen</th><th class="hide-sm">Actions</th><th class="hide-sm">AI today</th><th>Role</th><th></th></tr></thead>
       <tbody id="people"></tbody>
     </table>
   </section>
@@ -89,17 +89,33 @@ async function loadPeople() {
     else if (p.status === "pending") actions.append(change("active", "Let in", "go"), " ", change("blocked", "Block", "stop"));
     else if (p.status === "active") actions.append(change("blocked", "Block", "stop"));
     else actions.append(change("active", "Unblock", ""));
+    const role = el("td");
+    if (p.admin) role.append(el("span", { className: "muted", textContent: "Admin" }));
+    else {
+      const teacher = p.role === "teacher";
+      const b = el("button", { className: teacher ? "" : "go", textContent: teacher ? "Teacher ✓ (make student)" : "Make teacher" });
+      b.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        b.disabled = true;
+        try { await api(`api/admin/users/${encodeURIComponent(p.email)}/role`, { method: "POST", body: JSON.stringify({ role: teacher ? "student" : "teacher" }) }); }
+        catch (err) { alert(err.message); }
+        loadPeople();
+      });
+      role.append(b);
+    }
     const img = el("img", { src: p.picture || "icon.svg", alt: "", referrerPolicy: "no-referrer" });
     const row = el("tr", { className: "user" + (p.email === picked ? " on" : "") },
       el("td", {}, el("div", { className: "who" }, img, el("div", {}, p.name || p.email, el("small", { textContent: p.email })))),
       el("td", {}, el("span", { className: `tag ${p.status}`, textContent: p.status === "active" ? "in" : p.status })),
       el("td", { className: "hide-sm", textContent: when(p.last_seen) }),
       el("td", { className: "hide-sm", textContent: p.actions }),
+      el("td", { className: "hide-sm", textContent: p.ai_today }),
+      role,
       actions);
     row.addEventListener("click", () => { picked = p.email; loadPeople(); loadLog(); });
     return row;
   }));
-  if (!people.length) $("people").replaceChildren(el("tr", {}, el("td", { colSpan: 5, className: "empty", textContent: "Nobody has signed in yet." })));
+  if (!people.length) $("people").replaceChildren(el("tr", {}, el("td", { colSpan: 7, className: "empty", textContent: "Nobody has signed in yet." })));
 }
 
 async function loadLog() {

@@ -40,6 +40,14 @@ window.WB_AUTH = new Promise((resolve) => { authDone = resolve; });
     const toggle = (open) => { menu.hidden = !open; btn.setAttribute("aria-expanded", String(open)); };
     btn.addEventListener("click", (e) => { e.stopPropagation(); toggle(menu.hidden); });
     document.addEventListener("pointerdown", (e) => { if (!$("profile").contains(e.target)) toggle(false); });
+    $("delete-me").addEventListener("click", async () => {
+      if (!confirm("Delete your account? Your boards, history and class memberships are erased for good.")) return;
+      if (prompt('Type DELETE to confirm') !== "DELETE") return;
+      const r = await get("api/me/delete", { method: "POST" });
+      if (!r.deleted) return alert(r.detail || "Couldn't delete it just now. Try again.");
+      try { localStorage.clear(); } catch (_) { /* private mode */ }
+      location.reload();
+    });
     $("signout").addEventListener("click", async () => {
       await get("api/auth/logout", { method: "POST" });
       if (window.google) google.accounts.id.disableAutoSelect();

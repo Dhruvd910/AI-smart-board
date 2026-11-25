@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Liza Board</title>
 <link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b3df5">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="stylesheet" href="lw/css/app.css">
@@ -54,6 +56,13 @@
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
     <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-class" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.3"/><path d="M15.5 14.3A4.8 4.8 0 0121 19"/></symbol>
+    <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-quiz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .6-1.5 1.2-1.5 2.3 M12 17.2v.3"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11 M9 12h11 M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.5-1-2.6 0-1 .8-1.7 1.8-1.7H17a4 4 0 004-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></symbol>
     <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8 M12 17v4 M7 9h6 M7 12h9"/></symbol>
     <symbol id="i-mindmap" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="12" cy="20" r="2"/><path d="M10.2 10.2L6.4 6.4 M13.8 10.2l3.8-3.8 M12 14.5V18"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.5-1.5-6-1.5-9 .5-3-2-6.5-2-9-.5z M12 6v13.5"/></symbol>
@@ -82,6 +91,7 @@
     <button id="redo-top" title="Redo (Ctrl+Y)" aria-label="Redo"><svg><use href="#i-redo"/></svg></button>
   </div>
   <span class="divider"></span>
+  <button id="class-btn" class="topbtn" title="Classroom: start or join a class"><svg><use href="#i-class"/></svg><span>Class</span></button>
   <button id="share" title="Share a copy of this board"><svg><use href="#i-link"/></svg><span>Share</span></button>
   <span class="divider hide-sm"></span>
   <!-- The signed-in person (auth.js): their photo, history, admin, sign out -->
@@ -91,7 +101,9 @@
       <div class="pm-who"><b id="pm-name"></b><small id="pm-email"></small></div>
       <a href="history.html">My history</a>
       <a href="admin.html" id="pm-admin" hidden>Admin</a>
+      <a href="privacy.html" target="_blank">Privacy</a>
       <button id="signout">Sign out</button>
+      <button id="delete-me" class="danger">Delete my account</button>
     </div>
   </div>
 </header>
@@ -170,13 +182,78 @@
 <div class="fly tb" id="more" hidden>
   <button id="new-board" class="wide"><svg><use href="#i-plus"/></svg><span>New board</span></button>
   <button id="my-boards" class="wide"><svg><use href="#i-boards"/></svg><span>My boards</span></button>
-  <button id="bg" class="wide"><svg><use href="#i-grid"/></svg><span>Background: <b id="bgname">dots</b></span></button>
+  <button id="bg" class="wide" data-fly="style"><svg><use href="#i-palette"/></svg><span>Board style</span></button>
   <button id="png" class="wide"><svg><use href="#i-image"/></svg><span>Save as picture</span></button>
+  <button id="pdf" class="wide"><svg><use href="#i-save"/></svg><span>Save all pages as PDF</span></button>
+  <button id="record" class="wide"><svg><use href="#i-rec"/></svg><span>Record a lesson</span></button>
   <button id="save" class="wide"><svg><use href="#i-save"/></svg><span>Save board file</span></button>
   <button id="open" class="wide"><svg><use href="#i-open"/></svg><span>Open board file</span></button>
-  <label class="wide" id="cls-row"><svg><use href="#i-spark"/></svg><span>Class</span>
-    <select id="cls"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select></label>
   <button id="full" class="wide"><svg><use href="#i-full"/></svg><span>Full screen</span></button>
+</div>
+
+<!-- Share: the link, or straight into a class's app -->
+<div class="fly tb" id="sharefly" hidden>
+  <div class="fly-head">Whoever opens it gets their own copy</div>
+  <button id="share-copy" class="wide"><svg><use href="#i-link"/></svg><span>Copy link</span></button>
+  <a id="share-gc" class="wide share-app" target="_blank" rel="noopener"><b class="logo gc">G</b><span>Google Classroom</span></a>
+  <a id="share-teams" class="wide share-app" target="_blank" rel="noopener"><b class="logo teams">T</b><span>Microsoft Teams</span></a>
+  <a id="share-wa" class="wide share-app" target="_blank" rel="noopener"><b class="logo wa">W</b><span>WhatsApp</span></a>
+</div>
+
+<!-- Classroom: start a class (teachers) or join one -->
+<div class="fly tb" id="classfly" hidden>
+  <div id="class-teach">
+    <div class="fly-head">Teach a class</div>
+    <div class="class-row"><input id="class-title" maxlength="80" placeholder="Class name, e.g. Physics 9A"><button id="class-start" class="mini">Start</button></div>
+    <div id="class-mine"></div>
+  </div>
+  <div class="fly-head">Join a class</div>
+  <div class="class-row"><input id="class-code" maxlength="6" placeholder="Code from your teacher" autocapitalize="characters"><button id="class-join" class="mini">Join</button></div>
+</div>
+
+<!-- A student in a class -->
+<div id="classbar" hidden>
+  <i></i><span>In class: <b id="classbar-title"></b></span>
+  <button id="classbar-teacher" hidden>Teacher's board</button>
+  <button id="classbar-leave">Leave</button>
+</div>
+
+<!-- The teacher's view of the class -->
+<div id="classroom" hidden>
+  <div class="cr-head">
+    <div><b id="cr-title"></b><div class="cr-code">Join code <b id="cr-code"></b> · <a id="cr-link" href="#">copy join link</a></div></div>
+    <span class="grow"></span>
+    <label class="cr-toggle"><input type="checkbox" id="cr-show"> Show my board to the class</label>
+    <button id="cr-end" class="mini ghost">End class</button>
+    <button id="cr-close" class="mini">Back to my board</button>
+  </div>
+  <form id="cr-task" class="class-row"><input id="cr-task-text" maxlength="500" placeholder="Send a question or task to every student"><button class="mini">Send</button></form>
+  <div id="cr-count"></div>
+  <div id="cr-grid"></div>
+</div>
+
+<!-- One board, big (a student's, or the teacher's) -->
+<div id="bigview" hidden><div class="bv-head"><b id="bv-title"></b><button id="bv-close" class="mini">Close</button></div><img id="bv-img" alt=""></div>
+
+<!-- Board style: pattern and colour -->
+<div class="fly tb" id="style" hidden>
+  <div class="fly-head">Pattern</div>
+  <div class="patterns">
+    <button data-bg="dots"><i class="pat dots"></i><span>Dots</span></button>
+    <button data-bg="lines"><i class="pat lines"></i><span>Lines</span></button>
+    <button data-bg="grid"><i class="pat grid"></i><span>Boxes</span></button>
+    <button data-bg="plain"><i class="pat plain"></i><span>Plain</span></button>
+  </div>
+  <div class="fly-head">Board colour</div>
+  <div class="papers">
+    <button data-paper="white" style="--p:#ffffff" title="White" aria-label="White"></button>
+    <button data-paper="cream" style="--p:#fbf6e9" title="Cream" aria-label="Cream"></button>
+    <button data-paper="mint" style="--p:#eaf7ef" title="Mint" aria-label="Mint"></button>
+    <button data-paper="sky" style="--p:#ebf3ff" title="Sky" aria-label="Sky"></button>
+    <button data-paper="lilac" style="--p:#f3effe" title="Lilac" aria-label="Lilac"></button>
+    <button data-paper="chalk" style="--p:#23392f" title="Chalkboard" aria-label="Chalkboard"></button>
+    <button data-paper="night" style="--p:#17191f" title="Night" aria-label="Night"></button>
+  </div>
 </div>
 
 <!-- My boards (signed in) -->
@@ -203,18 +280,20 @@
 <div id="selbar" class="tb" hidden>
   <button id="sel-ask" class="sel-ask" title="Ask Liza about just this"><svg><use href="#i-spark"/></svg><span>Ask Liza</span></button>
   <button id="sel-edit" title="Edit the note" hidden><svg><use href="#i-pen"/></svg></button>
+  <button id="sel-neat" title="Neaten the writing" aria-label="Neaten the writing"><svg><use href="#i-text"/></svg></button>
   <button id="sel-copy" title="Duplicate (Ctrl+D)"><svg><use href="#i-copy"/></svg></button>
   <button id="sel-del" title="Delete (Del)"><svg><use href="#i-clear"/></svg></button>
 </div>
 
 <!-- What Liza reads, the buttons under the writing, the figure measured -->
-<div id="smart"><div id="chip" hidden></div></div>
-<div id="suggest" hidden></div>
+<button id="rec" hidden title="Stop recording"><i></i>Recording <b id="rec-time">0:00</b> · Stop</button>
+<div id="smart"><div id="chip" hidden></div><div id="suggest" hidden></div></div>
 <svg id="measure" aria-hidden="true"></svg>
 
 <!-- Right: Ask Liza -->
 <aside id="panel" aria-label="Ask Liza">
   <div class="panel-head">
+    <button id="panel-back" title="Back to the options" aria-label="Back to the options" hidden><svg><use href="#i-back"/></svg></button>
     <svg class="spark"><use href="#i-spark"/></svg>
     <b>Ask Liza</b>
     <span class="grow"></span>
@@ -242,6 +321,23 @@
       <button class="quick" data-quick="mindmap"><svg><use href="#i-mindmap"/></svg><span>Create a mind map</span><svg class="chev"><use href="#i-right"/></svg></button>
       <button class="quick" data-quick="explain"><svg><use href="#i-book"/></svg><span>Explain a concept</span><svg class="chev"><use href="#i-right"/></svg></button>
       <button class="quick" data-quick="flowchart"><svg><use href="#i-flow"/></svg><span>Generate a flowchart</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <button class="quick" data-quick="questions"><svg><use href="#i-quiz"/></svg><span>Generate questions</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <button class="quick" data-quick="check"><svg><use href="#i-check"/></svg><span>Check my work</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <button class="quick" data-quick="summary"><svg><use href="#i-list"/></svg><span>Summarise this page</span><svg class="chev"><use href="#i-right"/></svg></button>
+      <div class="settings">
+      <label class="level">Level
+        <select id="cls">
+          <optgroup label="School"><option value="1">Class 1</option><option value="2">Class 2</option><option value="3">Class 3</option><option value="4">Class 4</option><option value="5">Class 5</option><option value="6">Class 6</option><option value="7">Class 7</option><option value="8">Class 8</option><option value="9">Class 9</option><option value="10">Class 10</option><option value="11">Class 11</option><option value="12">Class 12</option></optgroup>
+          <optgroup label="After school"><option value="college">College</option><option value="higher">Higher studies</option></optgroup>
+        </select>
+      </label>
+      <label class="level">Syllabus
+        <select id="syllabus"><option value="cbse">CBSE / NCERT</option><option value="icse">ICSE / ISC</option><option value="state">State board</option><option value="ib">IB</option><option value="igcse">Cambridge IGCSE</option><option value="other">Other</option></select>
+      </label>
+      <label class="level">Language
+        <select id="lang"><option value="en">English</option><option value="hi">हिन्दी Hindi</option><option value="mr">मराठी Marathi</option><option value="bn">বাংলা Bengali</option><option value="ta">தமிழ் Tamil</option><option value="te">తెలుగు Telugu</option><option value="gu">ગુજરાતી Gujarati</option><option value="kn">ಕನ್ನಡ Kannada</option><option value="ml">മലയാളം Malayalam</option><option value="pa">ਪੰਜਾਬੀ Punjabi</option><option value="ur">اردو Urdu</option><option value="or">ଓଡ଼ିଆ Odia</option></select>
+      </label>
+      </div>
     </div>
     <div id="chat" aria-live="polite"></div>
     <div id="offers" hidden></div>
@@ -284,6 +380,7 @@
     <p id="signin-words">Sign in with your Google account to use the board.</p>
     <div id="gbutton"></div>
     <button id="signin-other" hidden>Use a different account</button>
+    <p class="signin-legal">By signing in you agree to how we handle your data: <a href="privacy.html" target="_blank">Privacy policy</a></p>
   </div>
 </div>
 <script src="auth.js"></script>
@@ -299,5 +396,10 @@
 } }
 </script>
 <script type="module" src="liza.js"></script>
+<script type="module" src="classroom.js"></script>
+<script>
+  // Installable, and opens offline (sw.js). Not from file://, where there is no service worker.
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
 </body>
 </html>

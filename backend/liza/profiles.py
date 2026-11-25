@@ -52,6 +52,11 @@ BAND_ELEMENTARY = "elementary"
 BAND_MIDDLE = "middle"
 BAND_SECONDARY = "secondary"
 BAND_SENIOR = "senior"
+# The web whiteboard also teaches past school: these two are levels, not classes.
+BAND_COLLEGE = "college"
+BAND_HIGHER = "higher"
+COLLEGE_CLASS, HIGHER_CLASS = "college", "higher"
+LEVEL_WORDS = {COLLEGE_CLASS: "college (undergraduate)", HIGHER_CLASS: "higher studies (postgraduate)"}
 
 _BAND_BY_CLASS = {}
 for _n in (1, 2, 3):            _BAND_BY_CLASS[_n] = BAND_PRIMARY
@@ -59,6 +64,8 @@ for _n in (4, 5, 6):            _BAND_BY_CLASS[_n] = BAND_ELEMENTARY
 for _n in (7, 8):               _BAND_BY_CLASS[_n] = BAND_MIDDLE
 for _n in (9, 10):              _BAND_BY_CLASS[_n] = BAND_SECONDARY
 for _n in (11, 12):             _BAND_BY_CLASS[_n] = BAND_SENIOR
+_BAND_BY_CLASS[COLLEGE_CLASS] = BAND_COLLEGE
+_BAND_BY_CLASS[HIGHER_CLASS] = BAND_HIGHER
 
 BAND_LABELS = {
     BAND_PRIMARY:    "Primary (Class 1-3)",
@@ -118,6 +125,17 @@ BAND_INSTRUCTIONS = {
         "a voice is reading this. "
         "AT MOST 7 SENTENCES."
     ),
+    BAND_COLLEGE: (
+        "Explain at an undergraduate (college) level. Assume school science and maths are known; use "
+        "precise terminology, the governing equations and their assumptions, derivations in outline when "
+        "they matter, and real applications. Say equations aloud in words, never as symbols. "
+        "AT MOST 8 SENTENCES."
+    ),
+    BAND_HIGHER: (
+        "Explain at a postgraduate (higher studies) level. Be rigorous and concise: state the general form, "
+        "the conditions under which it holds, limitations, and how it connects to related theory or current "
+        "practice. Say equations aloud in words, never as symbols. AT MOST 8 SENTENCES."
+    ),
 }
 
 
@@ -130,6 +148,11 @@ def normalise_class(class_value):
         return None
     if text.upper().replace(".", "").replace(" ", "") in ("KG", "LKG", "UKG", "NURSERY"):
         return KG_CLASS
+    low = text.lower()
+    if low in ("college", "ug", "undergraduate", "graduation", "degree"):
+        return COLLEGE_CLASS
+    if low in ("higher", "pg", "postgraduate", "masters", "phd", "higher studies"):
+        return HIGHER_CLASS
     digits = re.search(r'\d+', text)
     if not digits:
         return None
@@ -150,7 +173,7 @@ def get_grade_band(class_value):
     normalised = normalise_class(class_value)
     if normalised is None or normalised == KG_CLASS:
         return None
-    return _BAND_BY_CLASS[int(normalised)]
+    return _BAND_BY_CLASS[int(normalised) if normalised.isdigit() else normalised]
 
 
 def band_instruction(class_value):

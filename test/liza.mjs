@@ -179,7 +179,7 @@ try {
   await fingerLine(850, 250, 1000, 330);
   await waitFor("__reads.at(-1) === 4", "a reading of the whole page");
   await tapButton('#rail [data-tool="select"]');
-  await fingerLine(225, 225, 590, 365); // a box round the scribble, not the line on the right
+  await fingerLine(225, 246, 590, 365); // a box round the scribble, not the line on the right
   assert.equal(await js("Board.selection.length"), 3, "the box picks the three strokes it touches");
   assert.equal(await js("document.getElementById('selbar').hidden"), false, "the selection bar is up");
   await waitFor("__reads.at(-1) === 3 && document.getElementById('chip').className === 'read'", "a reading of just the picked strokes");
@@ -195,11 +195,51 @@ try {
   await rightClick(700, 600); // blank space
   assert.equal(await js("Board.selection.length"), 0, "right-click on blank space drops them all");
   await waitFor("__reads.at(-1) === 4", "the whole page again once nothing is picked");
-  await fingerLine(225, 225, 590, 365);
+  await fingerLine(225, 246, 590, 365);
   assert.equal(await js("Board.selection.length"), 3);
   await touch("touchStart", [[700, 600]]);
   await touch("touchEnd", []);
   assert.equal(await js("Board.selection.length"), 0, "a tap on blank space drops them all");
+
+  console.log("the action dock, neat writing, questions, the back button");
+  await waitFor("document.querySelectorAll('#suggest .act').length", "the action dock");
+  assert.deepEqual(await js("[...document.querySelectorAll('#suggest .act span')].map(s => s.textContent)"),
+    ["Explain", "Questions", "Summarise", "Neaten writing"], "a graph: no picture or diagram, the rest for any topic");
+  await js(`window.__f1 = window.fetch; window.fetch = (u, o) => {
+    const j = (d) => Promise.resolve(new Response(JSON.stringify(d), { headers: { "Content-Type": "application/json" } }));
+    if (String(u).includes("/api/check")) { window.__checkBody = JSON.parse(o.body); return j({ problem: "2x + 3 = 7", verdict: "mistake", hint: "What is 7 − 3?", praise: "Good start",
+      lines: [{ work: "2x + 3 = 7", ok: true, note: "" }, { work: "2x = 10", ok: false, note: "7 − 3 isn't 10" }] }); }
+    if (String(u).includes("/api/neaten")) return j({ lines: ["y = x²", "vertex at 0"], drawing: false });
+    if (String(u).includes("/api/study")) { window.__studyLevel = JSON.parse(o.body).cls; return j({ kind: "questions", level: "college (undergraduate)", topic: "Parabolas",
+      questions: [{ q: "Where is the vertex?", answer: "At the origin.", level: "easy" }, { q: "Roots of y = x² − 4?", answer: "x = ±2", level: "medium" }] }); }
+    return window.__f1(u, o); }; 1`);
+  await js("document.getElementById('cls').value = 'college'; 1");
+  const before = await js("board.items.length");
+  await js("[...document.querySelectorAll('#suggest .act')].find(b => b.textContent === 'Neaten writing').click(); 1");
+  await waitFor("board.items.some(it => it.tool === 'text' && it.text === 'y = x²\\nvertex at 0')", "the neat text");
+  assert.equal(await js("board.items.filter(it => it.tool === 'pen').length"), 0, "the handwriting went");
+  await tapButton("#undo");
+  assert.equal(await js("board.items.length"), before, "undo brings the handwriting back");
+  await js("[...document.querySelectorAll('#suggest .act')].find(b => b.textContent === 'Questions').click(); 1");
+  await waitFor("document.querySelectorAll('.msg.study ol li').length === 2", "the questions card");
+  assert.equal(await js("window.__studyLevel"), "college", "asked at the chosen level");
+  assert.equal(await js("document.querySelector('.msg.study .answer').hidden"), true, "answers hidden at first");
+  await js("document.querySelector('.msg.study li .mini').click(); 1");
+  assert.equal(await js("document.querySelector('.msg.study .answer').hidden"), false);
+  await shot("liza-questions");
+  await js("document.getElementById('syllabus').value = 'icse'; document.getElementById('lang').value = 'hi'; Liza.checkWork(); 1");
+  await waitFor("document.querySelector('.verdict.mistake') && document.querySelectorAll('.checks li.bad').length === 1", "her marking");
+  assert.deepEqual(await js("[__checkBody.cls, __checkBody.syllabus, __checkBody.lang, __checkBody.image.slice(0, 22)]"),
+    ["college", "icse", "hi", "data:image/png;base64,"], "the page and the settings go with it");
+  assert.match(await js("document.querySelector('.nudge').textContent"), /7 − 3/);
+  assert.equal(await js("document.getElementById('panel-back').hidden"), false, "a way back to the options");
+  await tapButton("#panel-back");
+  assert.deepEqual(await js("[document.getElementById('welcome').hidden, document.getElementById('chat').hidden]"), [false, true]);
+  await tapButton('[data-quick="mindmap"]');
+  assert.equal(await js("document.getElementById('panel-back').hidden"), false, "back from a chosen option too");
+  await tapButton("#panel-back");
+  assert.equal(await js("document.getElementById('quick-chip').hidden"), true);
+  await js("window.fetch = window.__f1; 1");
 
   console.log("phone");
   await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });

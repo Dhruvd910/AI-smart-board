@@ -118,6 +118,100 @@ assert server.boards._words("short") == "short" and len(server.boards._words("x"
 assert bob.post("/api/diagram", json={"kind": "poem", "topic": "x"}).status_code == 400
 assert [a["kind"] for a in boss.get("/api/admin/activity?email=bob@example.com").json()][:1] == ["made mind map"]
 
+# Neat writing, summaries and questions: the page goes as a picture, the reply is checked.
+PNG = "data:image/png;base64,iVBORw0KGgo="
+seen = []
+def fake(messages, max_tokens=300):
+    seen.append(messages)
+    return next(replies)
+server.boards.brain.complete = fake
+replies = iter(['{"lines": ["Projectile motion", "", 5], "drawing": false}'])
+assert bob.post("/api/neaten", json={"image": PNG}).json() == {"lines": ["Projectile motion"], "drawing": False}
+assert seen[-1][-1]["content"][0]["image_url"]["url"] == PNG, "the page goes with the question"
+assert bob.post("/api/neaten", json={"image": "data:text/html,hi"}).status_code == 400
+replies = iter(['{"title": "Motion", "points": ["Thrown things curve.", ""]}'])
+sm = bob.post("/api/study", json={"kind": "summary", "image": PNG, "cls": "college"}).json()
+assert sm["points"] == ["Thrown things curve."] and sm["level"] == "college (undergraduate)"
+assert "college (undergraduate)" in seen[-1][-1]["content"][1]["text"]
+replies = iter(["no", '{"topic": "Projectile", "questions": [{"q": "What is range?", "answer": "How far it goes.", "level": "easy"},'
+                ' {"q": "Max height for u = 20 m/s straight up?", "answer": "20.4 m", "level": "insane"}, {"q": "", "answer": "x"}]}'])
+qs = bob.post("/api/study", json={"kind": "questions", "topic": "projectile motion", "cls": "9"}).json()
+assert [q["level"] for q in qs["questions"]] == ["easy", "medium"] and qs["level"] == "Class 9"
+assert isinstance(seen[-1][-1]["content"], str), "a typed topic alone: no picture"
+assert bob.post("/api/study", json={"kind": "summary", "cls": "9"}).status_code == 400, "a summary needs the page"
+assert bob.post("/api/study", json={"kind": "poem", "image": PNG}).status_code == 400
+assert server.boards.level_words("higher") == "higher studies (postgraduate)" and server.boards.level_words("") == "Class 8"
+
+# Check my work: lines marked, a wrong line can't make it "correct", level and language in the prompt.
+replies = iter(['{"problem": "2x + 3 = 7", "lines": [{"work": "2x = 10", "ok": false, "note": "7 - 3 is not 10"},'
+                ' {"work": "x = 5", "ok": true}], "verdict": "correct", "hint": "What is 7 - 3?", "praise": "Neat"}'])
+ck = bob.post("/api/check", json={"image": PNG, "cls": "8", "syllabus": "cbse", "lang": "hi"}).json()
+assert ck["verdict"] == "mistake" and [l["ok"] for l in ck["lines"]] == [False, True]
+prompt_text = seen[-1][-1]["content"][1]["text"]
+assert "CBSE" in prompt_text and "Hindi" in prompt_text and "Class 8" in prompt_text
+
+# Teachers: the admin makes one; only teachers start classes.
+assert bob.post("/api/classes", json={"title": "x"}).status_code == 403
+assert boss.post("/api/admin/users/bob@example.com/role", json={"role": "teacher"}).status_code == 200
+assert boss.post("/api/admin/users/bob@example.com/role", json={"role": "king"}).status_code == 400
+assert bob.get("/api/auth/me").json()["teacher"] is True
+cls = bob.post("/api/classes", json={"title": "  Physics   9A "}).json()
+assert cls["title"] == "Physics 9A" and len(cls["code"]) == 6
+code = cls["code"]
+
+# A student joins, sends their board, gets the teacher's question; the teacher sees the picture.
+JPG = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ=="
+sam = client()
+sam.post("/api/auth/google", json={"credential": "sam@example.com"})
+boss.post("/api/admin/users/sam@example.com", json={"status": "active"})
+assert sam.post("/api/classes/join", json={"code": "nope00"}).status_code == 404
+assert sam.post("/api/classes/join", json={"code": code.lower()}).json()["title"] == "Physics 9A"
+assert sam.post(f"/api/classes/{code}/me", json={"image": "data:image/png;base64,xx"}).status_code == 400
+st = sam.post(f"/api/classes/{code}/me", json={"image": JPG}).json()
+assert st["task"] is None and st["ended"] is None and st["showing"] is False
+assert sam.get(f"/api/classes/{code}").status_code == 403, "only the teacher sees the class"
+v = bob.get(f"/api/classes/{code}").json()
+assert [s["email"] for s in v["students"]] == ["sam@example.com"] and v["students"][0]["online"]
+pic = bob.get(f"/api/classes/{code}/snap/sam@example.com")
+assert pic.status_code == 200 and pic.headers["content-type"] == "image/jpeg" and pic.content.startswith(b"\xff\xd8")
+assert sam.get(f"/api/classes/{code}/snap/sam@example.com").status_code == 403
+assert bob.post(f"/api/classes/{code}/task", json={"text": "Find the range for u = 20 m/s"}).status_code == 200
+assert sam.post(f"/api/classes/{code}/me", json={}).json()["task"] == "Find the range for u = 20 m/s"
+assert bob.post(f"/api/classes/{code}/show", json={"image": JPG}).status_code == 200
+assert sam.post(f"/api/classes/{code}/me", json={}).json()["showing"] is True
+assert sam.get(f"/api/classes/{code}/teacher").content.startswith(b"\xff\xd8")
+assert [c["code"] for c in bob.get("/api/classes/mine").json()] == [code]
+assert bob.post(f"/api/classes/{code}/end").status_code == 200
+assert sam.post(f"/api/classes/{code}/me", json={}).json()["ended"]
+assert sam.post("/api/classes/join", json={"code": code}).status_code == 410
+
+# A daily AI limit per person (admins have none); the admin sees today's count.
+server.access.DAILY_AI = 2
+eve = client()
+eve.post("/api/auth/google", json={"credential": "eve@example.com"})
+boss.post("/api/admin/users/eve@example.com", json={"status": "active"})
+codes = [eve.post("/api/board/read", json={"strokes": STROKES}).status_code for _ in range(3)]
+assert codes == [200, 200, 429], codes
+assert {p["email"]: p for p in boss.get("/api/admin/users").json()}["eve@example.com"]["ai_today"] == 2
+assert eve.get("/api/boards").status_code == 200, "only AI calls count"
+assert boss.post("/api/board/read", json={"strokes": STROKES}).status_code == 200
+server.access.DAILY_AI = 500
+
+# Delete my account: everything about them goes, and they are signed out.
+eve.post("/api/boards", json={"title": "Eve's"})
+assert eve.post("/api/me/delete").json() == {"deleted": True}
+assert eve.get("/api/auth/me").json()["signed_in"] is False
+assert not server.access.q("SELECT 1 FROM boards WHERE email = 'eve@example.com'")
+assert not server.access.q("SELECT 1 FROM activity WHERE email = 'eve@example.com'")
+assert "eve@example.com" not in {p["email"] for p in boss.get("/api/admin/users").json()}
+assert boss.post("/api/me/delete").status_code == 400, "the admin can't delete itself"
+
+# Daily backups: a real SQLite copy with the data in it.
+import backups, sqlite3  # noqa: E402,E401
+os.remove(backups.backup_now())  # the one taken when the server started, before any users
+path = backups.backup_now()
+assert sqlite3.connect(path).execute("SELECT COUNT(*) FROM users").fetchone()[0] >= 3
+
 # Sign out ends the session.
 assert boss.post("/api/auth/logout").status_code == 200
 assert boss.get("/api/admin/users").status_code == 401

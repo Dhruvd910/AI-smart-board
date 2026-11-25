@@ -21,6 +21,33 @@ gives whoever opens it their own copy. There is no live drawing together on one 
   several, or Ctrl+A; right-click or tap blank space to let go. The picked drawings glow, and she reads, offers buttons for and answers
   about only those (Ask Liza on the selection bar). Nothing picked: the whole page in view again.
 - **A graph drawn without its equation** gets "See the graph" with the reader's guess (y = x²).
+- **One action dock** under "I read: …", always at the top of the board: her buttons for this writing
+  (Plot it, See it in 3D, Run the simulation, Solve it…), then Explain, Picture and Diagram (not for
+  maths), Questions, Summarise and Neaten writing for any topic.
+- **Neaten writing** (dock, or the selection bar): the handwriting read and swapped for typed text in
+  its place, one undo step (`/api/neaten`). A drawing in the selection: she asks for just the writing.
+- **Questions and Summarise** (dock, or the panel's starters): six questions, easy to hard, with hidden
+  answers, or a short summary of the page, pitched at the **Level** in the panel (Class 1-12, College,
+  Higher studies), and either can go on the board as a note (`/api/study`).
+- **Board style** (… menu): dots, lines, boxes or plain, on white, cream, mint, sky, lilac, a green
+  chalkboard or night; on the dark two, black ink is drawn chalk white.
+- **The panel's back arrow** returns to the starters from a conversation or a chosen starter.
+- **Check my work** (dock for maths, or the panel): each line of the working marked ✓/✗ with what is
+  wrong, a nudge and one thing done well, never the answer (`/api/check`).
+- **Syllabus and Language** next to Level: CBSE/NCERT, ICSE, state board, IB, IGCSE; summaries,
+  questions and marking in English or 11 Indian languages.
+- **Teacher outputs:** a printable question paper with marks and an answer key, every page as a PDF
+  (… menu), and **Record a lesson** (the board and your voice as a video).
+- **Classroom mode** (`classroom.py`, `public/classroom.js`, the **Class** button): the admin makes
+  someone a teacher; a teacher starts a class and gets a 6-letter code or link; students join and
+  their boards show as live pictures on the teacher's screen; the teacher sends a question to every
+  student and can show their own board to the class. Polling every 4 s, no sockets.
+- **Share** opens Copy link, Google Classroom, Microsoft Teams and WhatsApp.
+- **Running it as a service:** a daily AI limit per person (`WB_DAILY_AI`, `WB_DAILY_AI_TEACHER`;
+  admins have none; today's count on the admin page), a daily database copy kept 14 days
+  (`backups.py`, in `data/backups/`), a privacy page, and **Delete my account** in the profile menu.
+- **Installable** (`manifest.webmanifest`, `sw.js`): add it to the home screen; it opens and draws
+  without internet (Liza needs it).
 - **Her buttons under the writing:** Solve it, Plot it, Balance it, See the reaction,
   See it in 3D, See the shape, Measure it (drawn figures tidied, corners lettered,
   angles written in, the total shown), and Explore it.

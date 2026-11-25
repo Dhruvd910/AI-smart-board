@@ -41,7 +41,12 @@ def db():
             CREATE TABLE IF NOT EXISTS activity (id INTEGER PRIMARY KEY, email TEXT NOT NULL, at REAL NOT NULL,
                 kind TEXT NOT NULL, detail TEXT);
             CREATE INDEX IF NOT EXISTS activity_email ON activity(email, at);
+            CREATE TABLE IF NOT EXISTS usage (email TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL,
+                PRIMARY KEY (email, day));
         """)
+        if "role" not in [c[1] for c in _db.execute("PRAGMA table_info(users)")]:
+            _db.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'student'")  # teacher or student
+            _db.commit()
     return _db
 
 
@@ -72,6 +77,7 @@ def user_by_token(token):
     user["admin"] = is_admin(user["email"])
     if user["admin"]:
         user["status"] = "active"
+    user["teacher"] = user["admin"] or user.get("role") == "teacher"
     return user
 
 
@@ -82,6 +88,31 @@ def log(request, kind, detail=""):
     if user:
         q("INSERT INTO activity (email, at, kind, detail) VALUES (?, ?, ?, ?)",
           (user["email"], time.time(), kind, str(detail or "")[:500]))
+
+
+# Calls that cost money at the AI provider: counted per person per day, with a ceiling.
+AI_PATHS = {"/api/turn", "/api/board/read", "/api/diagram", "/api/study", "/api/neaten", "/api/check", "/api/visual"}
+DAILY_AI = int(os.getenv("WB_DAILY_AI", "500"))
+DAILY_AI_TEACHER = int(os.getenv("WB_DAILY_AI_TEACHER", "1500"))
+
+
+def today():
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+def spend(user):
+    """Count one AI call; False when today's limit is used up (admins have none)."""
+    if user["admin"]:
+        return True
+    limit = DAILY_AI_TEACHER if user["teacher"] else DAILY_AI
+    with _lock:
+        row = db().execute("SELECT n FROM usage WHERE email = ? AND day = ?", (user["email"], today())).fetchone()
+        if row and row[0] >= limit:
+            return False
+        db().execute("INSERT INTO usage (email, day, n) VALUES (?, ?, 1) ON CONFLICT(email, day) DO UPDATE SET n = n + 1",
+                     (user["email"], today()))
+        db().commit()
+    return True
 
 
 async def guard(request: Request, call_next):
@@ -98,6 +129,8 @@ async def guard(request: Request, call_next):
     if path.startswith("/api/admin/") and not user["admin"]:
         return JSONResponse({"detail": "Admins only."}, status_code=403)
     request.state.user = user
+    if path in AI_PATHS and not spend(user):
+        return JSONResponse({"detail": "You've used today's AI limit. It resets at midnight (UTC)."}, status_code=429)
     if time.time() - (user["last_seen"] or 0) > 60:
         q("UPDATE users SET last_seen = ? WHERE email = ?", (time.time(), user["email"]))
     return await call_next(request)
@@ -159,7 +192,7 @@ def me_of(user):
     if not user:
         return {"signed_in": False, "enabled": bool(CLIENT_ID)}
     return {"signed_in": True, "enabled": True, "email": user["email"], "name": user["name"],
-            "picture": user["picture"], "status": user["status"], "admin": user["admin"]}
+            "picture": user["picture"], "status": user["status"], "admin": user["admin"], "teacher": user["teacher"]}
 
 
 @router.get("/api/auth/me")
@@ -187,11 +220,30 @@ def my_history(request: Request, limit: int = 200):
     return [dict(r) for r in rows]
 
 
+@router.post("/api/me/delete")
+def delete_me(request: Request):
+    """Erase the person and everything kept about them (the right to erasure)."""
+    email = request.state.user["email"]
+    if is_admin(email):
+        raise HTTPException(400, "An admin account can't delete itself here.")
+    steps = [(f"DELETE FROM {t} WHERE email = ?", (email,)) for t in ("boards", "activity", "usage", "members", "sessions", "users")]
+    steps.append(("UPDATE classes SET ended = COALESCE(ended, ?), snap = NULL WHERE owner = ?", (time.time(), email)))
+    for sql, args in steps:
+        try:
+            q(sql, args)
+        except sqlite3.OperationalError:
+            pass  # a table this server doesn't have (a feature off)
+    response = JSONResponse({"deleted": True})
+    response.delete_cookie(COOKIE)
+    return response
+
+
 # ------------------------------------------------------------------ the admin's view
 @router.get("/api/admin/users")
 def users():
-    rows = q("""SELECT u.*, (SELECT COUNT(*) FROM activity a WHERE a.email = u.email) AS actions
-                FROM users u ORDER BY (u.status = 'pending') DESC, u.last_seen DESC""")
+    rows = q("""SELECT u.*, (SELECT COUNT(*) FROM activity a WHERE a.email = u.email) AS actions,
+                COALESCE((SELECT n FROM usage g WHERE g.email = u.email AND g.day = ?), 0) AS ai_today
+                FROM users u ORDER BY (u.status = 'pending') DESC, u.last_seen DESC""", (today(),))
     return [{**dict(r), "admin": is_admin(r["email"])} for r in rows]
 
 
@@ -212,6 +264,22 @@ def set_status(email: str, body: StatusIn):
     if body.status == "blocked":
         q("DELETE FROM sessions WHERE email = ?", (email,))  # signed out everywhere at once
     return {"email": email, "status": body.status}
+
+
+class RoleIn(BaseModel):
+    role: str
+
+
+@router.post("/api/admin/users/{email}/role")
+def set_role(email: str, body: RoleIn):
+    """Teachers can start classes and have a higher daily AI limit."""
+    email = email.lower()
+    if body.role not in ("teacher", "student"):
+        raise HTTPException(400, "Unknown role.")
+    if not q("SELECT 1 FROM users WHERE email = ?", (email,)):
+        raise HTTPException(404, "No such user.")
+    q("UPDATE users SET role = ? WHERE email = ?", (body.role, email))
+    return {"email": email, "role": body.role}
 
 
 @router.get("/api/admin/activity")

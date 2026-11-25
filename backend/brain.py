@@ -79,7 +79,7 @@ def profile_block(profile):
     return (
         "### 1a. WHO YOU ARE TEACHING (CRITICAL OVERRIDE -- GOVERNS DEPTH, NOT BEHAVIOUR)\n"
         f"You are teaching {profile.get('name') or 'a student'}, "
-        f"who is in Class {profile.get('class')}.\n"
+        f"who is in {profiles.LEVEL_WORDS.get(profiles.normalise_class(profile.get('class')), 'Class ' + str(profile.get('class')))}.\n"
         f"{board_line}"
         f"{instruction}\n"
         "This sets HOW DEEP and HOW PLAIN the answer is. The mode below still decides HOW\n"

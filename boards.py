@@ -198,3 +198,178 @@ def diagram(body: DiagramIn, request: Request):
             access.log(request, "made " + ("mind map" if kind == "mindmap" else "flowchart"), topic)
             return {"kind": kind, "topic": topic, **out}
     raise HTTPException(502, "I couldn't make that one. Try saying the topic another way.")
+
+
+# ------------------------------------------------------------------ neat writing, summaries, questions
+def _png(data_url):
+    """The page as the browser drew it: a PNG data URL, checked before it goes to the model."""
+    if not (isinstance(data_url, str) and data_url.startswith("data:image/png;base64,")):
+        raise HTTPException(400, "Write or draw something first.")
+    if len(data_url) > 6_000_000:
+        raise HTTPException(413, "That is too much to read at once. Select a part of it.")
+    return data_url
+
+
+def _ask_picture(prompt, image, max_tokens):
+    messages = [{"role": "user", "content": prompt}]
+    if image:
+        messages = brain.attach_picture(messages, image, "Reply with the JSON only.")
+    try:
+        return _json_in(brain.complete(messages, max_tokens=max_tokens))
+    except Exception as exc:
+        print(f"[STUDY] {exc}", flush=True)
+        raise HTTPException(502, "I couldn't reach the AI just now. Try again.")
+
+
+def level_words(cls):
+    """The student's level as words for a prompt: "Class 8", "college (undergraduate)"..."""
+    import profiles
+    norm = profiles.normalise_class(cls)
+    if norm in profiles.LEVEL_WORDS:
+        return profiles.LEVEL_WORDS[norm]
+    return f"Class {norm}" if norm and norm.isdigit() else "Class 8"
+
+
+SYLLABI = {"cbse": "CBSE (NCERT textbooks)", "icse": "ICSE / ISC", "state": "their state board", "ib": "IB",
+           "igcse": "Cambridge IGCSE", "other": ""}
+LANGUAGES = {"en": "English", "hi": "Hindi", "mr": "Marathi", "bn": "Bengali", "ta": "Tamil", "te": "Telugu",
+             "gu": "Gujarati", "kn": "Kannada", "ml": "Malayalam", "pa": "Punjabi", "ur": "Urdu", "or": "Odia"}
+
+
+def audience(cls, syllabus="", lang=""):
+    """Who it is for, as a prompt phrase: level, syllabus, and the language to write in."""
+    words = level_words(cls)
+    if SYLLABI.get(syllabus) and words.startswith("Class"):
+        words += f", following the {SYLLABI[syllabus]} syllabus and its terms"
+    language = LANGUAGES.get(lang, "English")
+    if language != "English":
+        words += f". Write every word of the reply in {language} (in its own script); keep maths symbols and numbers as they are"
+    return words
+
+
+NEATEN_PROMPT = (
+    "This is handwriting from a student's whiteboard. Copy out exactly what is written, cleaned up: "
+    "correct spelling of words they clearly meant, but never add, answer or solve anything. Keep each "
+    "written line as one line. Maths in plain text with Unicode symbols (x², √, ≤, π, →). Keep the "
+    "student's own language and script.\n"
+    "Reply with JSON only: {\"lines\": [\"...\"], \"drawing\": false}\n"
+    "Set \"drawing\": true if the picture is mostly a drawing, graph or diagram rather than writing "
+    "(then copy only the words written on it, if any).")
+
+
+class NeatenIn(BaseModel):
+    image: str
+
+
+@router.post("/api/neaten")
+def neaten(body: NeatenIn, request: Request):
+    raw = _ask_picture(NEATEN_PROMPT, _png(body.image), 500) or {}
+    lines = [_words(l, 200) for l in (raw.get("lines") or []) if isinstance(l, str) and _words(l)][:30]
+    if lines:
+        access.log(request, "neatened", lines[0][:120])
+    return {"lines": lines, "drawing": bool(raw.get("drawing"))}
+
+
+STUDY_PROMPTS = {
+    "summary": (
+        "Summarise everything on this student's whiteboard page for a student at this level: {level}. "
+        "Topic hint (what was read off the page): {topic}\n"
+        "Reply with JSON only: {{\"title\": \"short title\", \"points\": [\"one clear sentence\", ...]}}\n"
+        "3 to 7 points, in the order the ideas build up, each under 25 words, at that level's depth. "
+        "Fix any mistake you see on the board in the point itself. Correct facts only."),
+    "questions": (
+        "Write practice questions about the topic on this student's whiteboard, for a student at this level: "
+        "{level}. Topic (read off the page): {topic}\n"
+        "Reply with JSON only: {{\"topic\": \"short topic name\", \"questions\": [{{\"q\": \"the question\", "
+        "\"answer\": \"a short worked answer\", \"level\": \"easy|medium|hard\"}}, ...]}}\n"
+        "Exactly 6 questions: 2 easy, 2 medium, 2 hard, as an exam at that level would ask them -- a mix of "
+        "recall, understanding and, where the topic has numbers, a calculation with the values given. "
+        "Answers under 60 words; maths in plain text with Unicode symbols. Correct facts only."),
+}
+
+
+class StudyIn(BaseModel):
+    kind: str
+    image: str = ""   # the page; questions can also come from a typed topic alone
+    topic: str = ""
+    cls: str = ""
+    syllabus: str = ""
+    lang: str = ""
+
+
+@router.post("/api/study")
+def study(body: StudyIn, request: Request):
+    if body.kind not in STUDY_PROMPTS:
+        raise HTTPException(400, "Unknown request.")
+    level = level_words(body.cls)
+    prompt = STUDY_PROMPTS[body.kind].format(level=audience(body.cls, body.syllabus, body.lang), topic=_words(body.topic, 200) or "(read it from the picture)")
+    if not body.image and (body.kind == "summary" or not body.topic.strip()):
+        raise HTTPException(400, "Write or draw something first.")
+    image = _png(body.image) if body.image else None
+    for _ in range(2):  # one retry if the reply isn't usable JSON
+        raw = _ask_picture(prompt, image, 1400)
+        out = clean_study(body.kind, raw)
+        if out:
+            access.log(request, "made summary" if body.kind == "summary" else "made questions",
+                       out.get("title") or out.get("topic") or body.topic[:120])
+            return {"kind": body.kind, "level": level, **out}
+    raise HTTPException(502, "I couldn't make that one. Try again.")
+
+
+def clean_study(kind, raw):
+    """The model's JSON reduced to what the panel shows; None if it isn't usable."""
+    if not isinstance(raw, dict):
+        return None
+    if kind == "summary":
+        points = [_words(p, 300) for p in raw.get("points") or [] if isinstance(p, str) and _words(p)][:8]
+        return {"title": _words(raw.get("title"), 80) or "Summary", "points": points} if points else None
+    qs = []
+    for q in raw.get("questions") or []:
+        if isinstance(q, dict) and _words(q.get("q")) and _words(q.get("answer")):
+            lvl = q.get("level") if q.get("level") in ("easy", "medium", "hard") else "medium"
+            qs.append({"q": _words(q["q"], 400), "answer": _words(q["answer"], 600), "level": lvl})
+    return {"topic": _words(raw.get("topic"), 80), "questions": qs[:10]} if len(qs) >= 2 else None
+
+
+# ------------------------------------------------------------------ check my work
+CHECK_PROMPT = (
+    "A student at this level: {level} has worked a problem on their whiteboard (the picture). Mark it like a "
+    "kind teacher. Read their working line by line. For each line say if it is right, and if not, what is "
+    "wrong in a short note -- point at the mistake, NEVER write the corrected line or the final answer.\n"
+    "Reply with JSON only: {{\"problem\": \"what they are solving, short\", \"lines\": [{{\"work\": \"the line as "
+    "written\", \"ok\": true, \"note\": \"\"}}], \"verdict\": \"correct|mistake|incomplete\", \"hint\": \"one "
+    "question or nudge that helps them find the next step themselves\", \"praise\": \"one specific thing they did well\"}}\n"
+    "\"correct\" only when the final answer is there and right. Maths in plain text with Unicode symbols.")
+
+
+class CheckIn(BaseModel):
+    image: str
+    cls: str = ""
+    syllabus: str = ""
+    lang: str = ""
+
+
+def clean_check(raw):
+    if not isinstance(raw, dict):
+        return None
+    lines = [{"work": _words(l.get("work"), 200), "ok": l.get("ok") is not False, "note": _words(l.get("note"), 200)}
+             for l in raw.get("lines") or [] if isinstance(l, dict) and _words(l.get("work"))][:20]
+    verdict = raw.get("verdict") if raw.get("verdict") in ("correct", "mistake", "incomplete") else None
+    if not lines or not verdict:
+        return None
+    if verdict == "correct" and not all(l["ok"] for l in lines):
+        verdict = "mistake"  # a wrong line can't be a right answer
+    return {"problem": _words(raw.get("problem"), 120), "lines": lines, "verdict": verdict,
+            "hint": _words(raw.get("hint"), 240), "praise": _words(raw.get("praise"), 160)}
+
+
+@router.post("/api/check")
+def check(body: CheckIn, request: Request):
+    image = _png(body.image)
+    prompt = CHECK_PROMPT.format(level=audience(body.cls, body.syllabus, body.lang))
+    for _ in range(2):
+        out = clean_check(_ask_picture(prompt, image, 1200))
+        if out:
+            access.log(request, "checked work", f"{out['problem'] or 'a problem'}: {out['verdict']}")
+            return {**out, "level": level_words(body.cls)}
+    raise HTTPException(502, "I couldn't check that one. Try again.")

@@ -81,8 +81,8 @@ function strokesFor(items, f) {
 }
 
 // Typed text can't go as strokes, so a page with text on it goes as a picture too.
-function pictureFor(items) {
-  if (!items.some((it) => it.tool === "text")) return null;
+function pictureFor(items, always = false) {
+  if (!always && !items.some((it) => it.tool === "text")) return null;
   const b = C.boundsOf(items), m = 18 / view.s;
   const w = b.x1 - b.x0 + 2 * m, h = b.y1 - b.y0 + 2 * m;
   const k = Math.min(1280 / Math.max(w, h), view.s * 3);
@@ -181,25 +181,46 @@ function pill(offer, onclick) {
   return b;
 }
 
-// Under the writing (above it when it reaches the bottom), as _wb_draw_suggestions.
+// What she can do with what she read, in one place: a dock under "I read: ...",
+// always at the top of the board. Her own buttons for this writing first (Plot it,
+// See it in 3D, Run the simulation...), then the ones any topic gets.
+function act(icon, label, run) {
+  const b = document.createElement("button");
+  b.className = "act";
+  b.innerHTML = `<svg><use href="#${icon}"/></svg>`;
+  const words = document.createElement("span");
+  words.textContent = label;
+  b.append(words);
+  b.addEventListener("click", run);
+  return b;
+}
+
+function actionsFor(found) {
+  const topic = found.read;
+  const maths = !!(found.solve || (found.plot || []).length || found.curve || found.reaction);
+  const has = (kind) => (found.suggest || []).some((o) => o.kind === kind);
+  const list = [act("i-book", "Explain", () => turn({ boardAsk: "ask" }))];
+  if (!maths && !has("picture")) list.push(act("i-image", "Picture", () => runOffer({ kind: "picture", payload: topic })));
+  if (!maths) list.push(act("i-flow", "Diagram", () => runOffer({ kind: "picture", payload: `a clear labelled textbook diagram of ${topic}` })));
+  if (found.solve || (found.plot || []).length) list.push(act("i-check", "Check my work", checkWork));
+  list.push(act("i-quiz", "Questions", () => study("questions")));
+  list.push(act("i-list", "Summarise", () => study("summary")));
+  if (visibleItems().some((it) => it.tool === "pen")) list.push(act("i-text", "Neaten writing", neaten));
+  return list;
+}
+
 function placeSuggestions() {
   const box = $("suggest");
-  const list = reading && !pointers.size ? reading.found.suggest || [] : [];
-  box.replaceChildren(...list.map((o) => pill(
+  const found = reading && !pointers.size && reading.found.read ? reading.found : null;
+  const list = found ? found.suggest || [] : [];
+  const mine = list.map((o) => pill(
     o.kind === "measure" && measureShown ? { ...o, label: "Hide the angles", sub: "" } : o,
-    () => suggestionTapped(o))));
-  box.hidden = !list.length;
-  if (!list.length) return;
-  const ink = inkBox(visibleItems());
-  if (!ink) return;
-  const r = box.getBoundingClientRect();
-  const floor = H - $("bar").offsetHeight - 24;
-  let y = ink[3] + 14;
-  if (y + r.height > floor) y = Math.max(70, ink[1] - 14 - r.height);
-  const right = $("panel").hidden || W <= 760 ? W : $("panel").getBoundingClientRect().left;
-  const x = Math.max(8, Math.min(right - r.width - 8, ink[0]));
-  box.style.left = x + "px";
-  box.style.top = y + "px";
+    () => suggestionTapped(o)));
+  const general = found ? actionsFor(found) : [];
+  const line = document.createElement("i");
+  line.className = "sep";
+  box.replaceChildren(...mine, ...(mine.length && general.length ? [line] : []), ...general);
+  box.hidden = !found;
 }
 
 function suggestionTapped(offer) {
@@ -486,7 +507,9 @@ function message(who, text) {
   m.className = "msg " + who + (text ? "" : " wait");
   m.textContent = text;
   $("chat").append(m);
+  $("chat").hidden = false;
   $("welcome").hidden = true;
+  showBack();
   setPanel(true);
   m.scrollIntoView({ block: "nearest" });
   return m;
@@ -521,7 +544,7 @@ async function turn({ text = "", boardAsk = "", heard = "", withPage = true } = 
     text, board_ask: text ? "" : boardAsk || "ask", heard_language: heard || (lang === "hi" ? "hi" : ""),
     board_strokes: p ? p.strokes : null, board_image: p ? p.image : null,
     screen: { ...visual.state(), offers: offers.map((o) => ({ label: o.label, kind: o.kind, payload: o.payload })) },
-    history: history.slice(-12), cls: $("cls").value,
+    history: history.slice(-12), cls: $("cls").value, syllabus: $("syllabus").value,
     explorer: explorer.current() ? explorer.current().state : null,
   };
   try {
@@ -574,17 +597,148 @@ async function turn({ text = "", boardAsk = "", heard = "", withPage = true } = 
   if (controller === null) setState("idle"); // unless another question has started meanwhile
 }
 
-// The panel's three starters: they ask for a topic, then make it.
+// ------------------------------------------------------------------ neat writing
+// The handwriting in view (or picked) read as text and put in its place, one undo step.
+async function neaten() {
+  const strokes = visibleItems().filter((it) => it.tool === "pen");
+  if (!strokes.length) return hint("There's no handwriting here to neaten.");
+  setChip("reading", "");
+  $("chip").textContent = "Making your writing neat…";
+  try {
+    const r = await api.send("POST", "/api/neaten", { image: pictureFor(strokes, true) });
+    if (r.drawing) return hint("That has a drawing in it. Select just the writing (drag a box round it), then tap Neaten.");
+    if (!r.lines.length) return hint("I couldn't read that writing. Try writing a little bigger.");
+    Board.neaten(strokes, r.lines);
+    hint("Made neat. Undo brings your handwriting back.");
+  } catch (err) {
+    hint(err.message || "I couldn't do that just now. Try again.");
+  }
+}
+
+// ------------------------------------------------------------------ summary and questions
+// For the student's level (Class 1-12, college, higher studies: the Level menu).
+async function study(kind, typedTopic = "") {
+  const p = typedTopic ? null : page();
+  if (!p && !typedTopic) return hint("Write or draw something first.");
+  const topic = typedTopic || (reading && reading.found.read) || "";
+  message("user", kind === "summary" ? "Summarise this page." : `Make practice questions${topic ? " on " + topic : ""}.`);
+  const reply = message("liza", "");
+  setState("thinking");
+  try {
+    const d = await api.send("POST", "/api/study", {
+      kind, topic, ...audience(), image: p ? pictureFor(p.items, true) : "",
+    });
+    reply.classList.remove("wait");
+    reply.classList.add("study");
+    if (kind === "summary") showSummary(reply, d);
+    else showQuestions(reply, d);
+    reply.scrollIntoView({ block: "nearest" });
+  } catch (err) {
+    addWords(reply, err.message || "I couldn't make that one. Try again.");
+  }
+  setState("idle");
+}
+
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
+
+function showSummary(box, d) {
+  const list = el("ul");
+  d.points.forEach((p) => list.append(el("li", "", p)));
+  const keep = el("button", "mini", "Put it on the board");
+  keep.addEventListener("click", () => {
+    Board.addNote(d.title + "\n" + d.points.map((p) => "• " + p).join("\n"));
+    keep.disabled = true;
+    keep.textContent = "On the board";
+  });
+  box.replaceChildren(el("b", "study-title", d.title), el("small", "study-level", "For " + d.level), list, keep);
+}
+
+function showQuestions(box, d) {
+  const list = el("ol");
+  d.questions.forEach((q) => {
+    const li = el("li");
+    const ans = el("div", "answer", q.answer);
+    ans.hidden = true;
+    const show = el("button", "mini ghost", "Show answer");
+    show.addEventListener("click", () => { ans.hidden = !ans.hidden; show.textContent = ans.hidden ? "Show answer" : "Hide answer"; });
+    li.append(el("span", "lvl " + q.level, q.level), el("p", "", q.q), show, ans);
+    list.append(li);
+  });
+  const keep = el("button", "mini", "Put the questions on the board");
+  keep.addEventListener("click", () => {
+    Board.addNote("Questions: " + (d.topic || "practice") + "\n" + d.questions.map((q, i) => `${i + 1}. ${q.q}`).join("\n"));
+    keep.disabled = true;
+    keep.textContent = "On the board";
+  });
+  const paper = el("button", "mini ghost", "Question paper (PDF)");
+  paper.addEventListener("click", () => questionPaper(d));
+  const row = el("div", "row-btns");
+  row.append(keep, paper);
+  box.replaceChildren(el("b", "study-title", "Questions" + (d.topic ? ": " + d.topic : "")), el("small", "study-level", "For " + d.level), list, row);
+}
+
+// A printable test: blanks for name and date, marks by difficulty, the answer key on its own page.
+function questionPaper(d) {
+  const MARKS = { easy: 2, medium: 3, hard: 5 };
+  const esc = (t) => String(t).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[ch]);
+  const total = d.questions.reduce((n, q) => n + MARKS[q.level], 0);
+  const title = (d.topic || "Practice") + " — Questions";
+  Board.printDoc(title, `<h1>${esc(title)}</h1>
+    <div class="meta">${esc(d.level)} · Total marks: ${total}</div>
+    <div class="blanks"><span>Name:</span><span>Class/Section:</span><span>Date:</span></div>
+    <ol>${d.questions.map((q) => `<li><span class="marks">[${MARKS[q.level]}]</span> ${esc(q.q)} <span class="lvl">(${q.level})</span></li>`).join("")}</ol>
+    <div class="break"><h1>Answer key</h1><ol>${d.questions.map((q) => `<li>${esc(q.answer)}</li>`).join("")}</ol></div>`);
+}
+
+// The settings in the panel: level, syllabus and the language summaries, questions and marking come in.
+const audience = () => ({ cls: $("cls").value, syllabus: $("syllabus").value, lang: $("lang").value });
+
+// ------------------------------------------------------------------ check my work
+// Her marking of the working in view (or picked): each line right or not, a nudge, never the answer.
+async function checkWork() {
+  const p = page();
+  if (!p) return hint("Write your working first, then tap Check my work.");
+  message("user", "Check my work.");
+  const reply = message("liza", "");
+  setState("thinking");
+  try {
+    const d = await api.send("POST", "/api/check", { image: pictureFor(p.items, true), ...audience() });
+    reply.classList.remove("wait");
+    reply.classList.add("study");
+    const words = { correct: "All correct!", mistake: "There's a mistake", incomplete: "Not finished yet" };
+    const list = el("ol", "checks");
+    d.lines.forEach((l) => {
+      const li = el("li", l.ok ? "ok" : "bad");
+      li.append(el("b", "", l.ok ? "✓" : "✗"), el("code", "", l.work));
+      if (!l.ok && l.note) li.append(el("small", "", l.note));
+      list.append(li);
+    });
+    reply.replaceChildren(el("b", "study-title", d.problem || "Your working"), el("span", "verdict " + d.verdict, words[d.verdict]), list);
+    if (d.praise) reply.append(el("p", "", "👍 " + d.praise));
+    if (d.hint && d.verdict !== "correct") reply.append(el("p", "nudge", "💡 " + d.hint));
+    reply.scrollIntoView({ block: "nearest" });
+  } catch (err) {
+    addWords(reply, err.message || "I couldn't check that one. Try again.");
+  }
+  setState("idle");
+}
+
+// The panel's starters: some ask for a topic, then make it; the rest work on the page.
 const QUICK = {
   mindmap: { chip: "Mind map", hint: "What is the mind map about?" },
   explain: { chip: "Explain", hint: "Which concept?" },
   flowchart: { chip: "Flowchart", hint: "What should the flowchart show?" },
+  questions: { chip: "Questions", hint: "Which topic? (or leave it empty for the board's)" },
 };
 let quick = null;
 function setQuick(kind) {
+  if (kind === "summary") return study("summary");
+  if (kind === "check") return checkWork();
   quick = kind;
   $("quick-chip").hidden = !kind;
   $("question").placeholder = kind ? QUICK[kind].hint : "Ask anything…";
+  document.querySelectorAll("[data-quick]").forEach((b) => b.classList.toggle("on", b.dataset.quick === kind));
+  showBack();
   if (!kind) return;
   $("quick-chip").querySelector("span").textContent = QUICK[kind].chip;
   if (!$("question").value && reading && reading.found.read) $("question").value = reading.found.read; // what is written is a good guess
@@ -612,6 +766,7 @@ async function makeDiagram(kind, topic) {
 $("askbar").addEventListener("submit", (e) => {
   e.preventDefault();
   const q = $("question").value.trim();
+  if (quick === "questions") { $("question").value = ""; setQuick(null); return study("questions", q); }
   if (quick && !q) return hint(QUICK[quick].hint);
   $("question").value = "";
   $("question").blur();
@@ -632,6 +787,16 @@ function setPanel(open) {
   placeAll();
   drawGraph();
 }
+// Back to the starters from a conversation or a chosen starter; the conversation stays for later.
+function showBack() { $("panel-back").hidden = $("welcome").hidden === false && !quick; }
+$("panel-back").addEventListener("click", () => {
+  setQuick(null);
+  $("welcome").hidden = false;
+  $("chat").hidden = true;
+  $("offers").hidden = true;
+  $("panel-body").scrollTop = 0;
+  showBack();
+});
 $("panel-min").addEventListener("click", () => setPanel(false));
 $("panel-open").addEventListener("click", () => setPanel(true));
 $("panel-max").addEventListener("click", () => {
@@ -699,10 +864,15 @@ function placeAll() {
   dock();
   placeSuggestions();
   placeMeasure();
+  placeSelbar(); // app.js: it moves below a selection when the dock is in the way
 }
 
 try { $("cls").value = localStorage.getItem("whiteboard.class") || "8"; } catch (_) { $("cls").value = "8"; }
 $("cls").addEventListener("change", () => { try { localStorage.setItem("whiteboard.class", $("cls").value); } catch (_) { /* private mode */ } });
+for (const id of ["syllabus", "lang"]) {
+  try { $(id).value = localStorage.getItem("whiteboard." + id) || $(id).value; } catch (_) { /* private mode */ }
+  $(id).addEventListener("change", () => { try { localStorage.setItem("whiteboard." + id, $(id).value); } catch (_) { /* private mode */ } });
+}
 window.addEventListener("resize", () => { placeAll(); drawGraph(); if (!$("viewport").hidden) fitStage(); });
 setState("idle");
 
@@ -714,4 +884,4 @@ function askAbout() {
   turn({ boardAsk: "ask" });
 }
 
-window.Liza = { changed, turn, askAbout, runOffer, state: () => ({ reading, offers, panel, graph: !!graph }) };
+window.Liza = { changed, turn, askAbout, neaten, study, checkWork, runOffer, state: () => ({ reading, offers, panel, graph: !!graph }) };

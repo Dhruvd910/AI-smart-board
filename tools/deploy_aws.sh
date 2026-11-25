@@ -16,7 +16,7 @@ SSH=(ssh -i "$KEY" -o StrictHostKeyChecking=accept-new "ubuntu@$HOST")
 
 rm -rf "$OUT"
 mkdir -p "$OUT/app"
-cp "$WB/server.py" "$WB/access.py" "$WB/boards.py" "$WB/requirements.txt" "$OUT/app/"
+cp "$WB/server.py" "$WB/access.py" "$WB/boards.py" "$WB/classroom.py" "$WB/backups.py" "$WB/requirements.txt" "$OUT/app/"
 rsync -a --exclude __pycache__ "$WB/backend" "$WB/public" "$OUT/app/"
 cp "$WB"/aws/{Dockerfile,docker-compose.yml,Caddyfile} "$OUT/"
 # The keys, never printed; Caddy's site name added.

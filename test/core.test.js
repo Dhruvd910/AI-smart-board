@@ -129,4 +129,20 @@ assert.equal(two.pages.length, 2);
 assert.equal(two.bg, "dots");
 assert.equal(C.sanitizeBoard(null).pages.length, 1, "nothing at all is one empty page");
 
+// swap: handwriting out, neat text in, as one undo step that keeps the stacking order
+{
+  const a = { tool: "pen", color: "#000", width: 2, points: [[0, 0, 0.5], [5, 5, 0.5]] };
+  const b = { tool: "rect", color: "#000", width: 2, points: [[0, 0, 0.5], [9, 9, 0.5]] };
+  const c = { tool: "pen", color: "#000", width: 2, points: [[1, 1, 0.5], [6, 6, 0.5]] };
+  const t = { tool: "text", color: "#000", x: 0, y: 0, text: "Hi", size: 20 };
+  const h = new C.History([a, b, c]);
+  h.swap([a, c], [t]);
+  assert.deepEqual(h.items, [b, t]);
+  h.undo();
+  assert.deepEqual(h.items, [a, b, c], "undo puts the strokes back where they were");
+  h.redo();
+  assert.deepEqual(h.items, [b, t]);
+}
+assert.equal(C.sanitizeBoard({ pages: [], paper: "chalk" }).paper, "chalk");
+
 console.log("core: all checks pass");

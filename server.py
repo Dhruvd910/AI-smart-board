@@ -42,13 +42,20 @@ app.middleware("http")(access.guard)
 app.include_router(access.router)
 import boards  # noqa: E402
 boards.setup()
+import classroom  # noqa: E402
+classroom.setup()
+if os.getenv("WB_BACKUPS", "1") == "1":
+    import backups  # noqa: E402
+    backups.start()
 app.include_router(boards.router)
-CLASSES = {str(n) for n in range(1, 13)}
+app.include_router(classroom.router)
+CLASSES = {str(n) for n in range(1, 13)} | {"college", "higher"}
 
 
-def profile(cls):
-    # Her answers are pitched at the student's class, as on the device.
-    return {"class": cls if cls in CLASSES else os.getenv("WB_CLASS", "8"), "name": "Student"}
+def profile(cls, syllabus=""):
+    # Her answers are pitched at the student's class (and syllabus), as on the device.
+    return {"class": cls if cls in CLASSES else os.getenv("WB_CLASS", "8"), "name": "Student",
+            "board": boards.SYLLABI.get(syllabus, "") if cls not in ("college", "higher") else ""}
 
 
 def picture(data_url):
@@ -110,6 +117,7 @@ class TurnIn(BaseModel):
     explorer: dict | None = None  # the 3D Explorer's view, when it is open
     history: list | None = None  # [{role, content}], this browser's last few turns
     cls: str = ""
+    syllabus: str = ""
 
 
 @app.post("/api/turn")
@@ -137,7 +145,7 @@ def turn(body: TurnIn, request: Request):
     lab = geolab.for_turn(shown.get("geometry"), text)
     on_board = explorer.board_line(body.explorer) or board_kit.on_board_line(shown)
     buttons = board_kit.offers_line(shown)
-    system = brain.system_prompt(profile(body.cls), "TUTOR", language, None, on_board,
+    system = brain.system_prompt(profile(body.cls, body.syllabus), "TUTOR", language, None, on_board,
                                  whiteboard=bool(board_url), buttons=buttons)
     turns = [t for t in (body.history or [])[-12:]
              if isinstance(t, dict) and t.get("role") in ("user", "assistant") and isinstance(t.get("content"), str)]
